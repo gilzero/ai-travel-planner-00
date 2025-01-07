@@ -1,3 +1,4 @@
+# Filepath: /backend/nodes/enrich_docs.py
 from langchain_core.messages import AIMessage
 from tavily import AsyncTavilyClient
 import os
@@ -7,110 +8,134 @@ from ..classes import ResearchState
 class EnrichDocsNode:
     def __init__(self):
         self.tavily_client = AsyncTavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+        print("🛠️ [DEBUG] EnrichDocsNode initialized.")
 
     async def curate(self, state: ResearchState):
+        print("🚀 [DEBUG] Starting curate method.")
         clusters = state['document_clusters']
+        print(f"🗂️ [DEBUG] Document clusters received: {clusters}")
         msg = "🔍 Enriching travel information...\n"
         enriched_docs = {}
         urls_to_extract = self._collect_and_validate_urls(clusters)
 
-        print(f"[DEBUG] Collected URLs for enrichment: {urls_to_extract}")
+        print(f"🔗 [DEBUG] Collected URLs for enrichment: {urls_to_extract}")
 
         if not urls_to_extract:
             msg += "❌ No valid URLs to enrich. Ensure clusters contain valid URLs.\n"
-            print(f"[DEBUG] No valid URLs collected from clusters: {clusters}")
+            print(f"⚠️ [DEBUG] No valid URLs collected from clusters: {clusters}")
             return {
                 "messages": [AIMessage(content=msg)],
                 "documents": {}
             }
 
         try:
-            print(f"[DEBUG] Sending {len(urls_to_extract)} URLs to Tavily Extract for enrichment...")
+            print(f"📡 [DEBUG] Sending {len(urls_to_extract)} URLs to Tavily Extract for enrichment...")
             extracted_content = await self.tavily_client.extract(urls=urls_to_extract)
-
+            print(f"✅ [DEBUG] Received content from Tavily API.")
             enriched_docs = self._process_extracted_content(extracted_content, clusters)
             if enriched_docs:
                 msg += f"✓ Successfully enriched {len(enriched_docs)} travel resources.\n"
-                print(f"[DEBUG] Enriched documents: {enriched_docs}")
+                print(f"✨ [DEBUG] Enriched documents: {enriched_docs}")
             else:
                 msg += "❌ No valid content extracted from the provided URLs.\n"
-                print(f"[DEBUG] Tavily Extract returned no valid content for URLs: {urls_to_extract}")
+                print(f"⚠️ [DEBUG] Tavily Extract returned no valid content for URLs: {urls_to_extract}")
 
         except Exception as e:
-            msg += f"❌ Error during content enrichment: {str(e)}\n"
-            print(f"[ERROR] Exception during enrichment: {str(e)}")
+            msg += f"🚨 Error during content enrichment: {str(e)}\n"
+            print(f"🔥 [ERROR] Exception during enrichment: {str(e)}")
 
+        print("🚪 [DEBUG] Exiting curate method.")
         return {"messages": [AIMessage(content=msg)], "documents": enriched_docs}
 
     def _collect_and_validate_urls(self, clusters: List[Dict]) -> List[str]:
+        print("🔎 [DEBUG] Starting URL collection and validation.")
         urls = []
         for cluster in clusters:
             cluster_urls = cluster.get("urls", [])
-            print(f"[DEBUG] Cluster '{cluster.get('category', 'Unknown')}' URLs: {cluster_urls}")
+            print(f"   🔍 [DEBUG] Cluster '{cluster.get('category', 'Unknown')}' contains URLs: {cluster_urls}")
             if not isinstance(cluster_urls, list):
+                print(f"   ⚠️ [WARNING] Cluster '{cluster.get('category')}' has an invalid 'urls' format. Skipping cluster.")
                 continue
-            # Skip clusters with no valid URLs
-            if not cluster_urls:
-                print(f"[WARNING] Cluster '{cluster.get('category')}' has no URLs.")
+            valid_urls = [url for url in cluster_urls if isinstance(url, str) and url.startswith("http")]
+            if not valid_urls:
+                print(f"  ⚠️ [WARNING] Cluster '{cluster.get('category')}' has no valid URLs after filtering. Skipping cluster.")
                 continue
-            urls.extend(cluster_urls[:5])  # Limit to top 5 URLs per cluster
-        return list(dict.fromkeys(urls))
+            urls.extend(valid_urls[:5])  # Limit to top 5 URLs per cluster
+            print(f"  ✅ [DEBUG] Added {len(valid_urls[:5])} valid URLs from cluster: {valid_urls[:5]}")
+        print(f"🔗 [DEBUG] Final collected URLs for enrichment (before deduplication): {urls}")
+        deduplicated_urls = list(dict.fromkeys(urls))
+        print(f"🔗 [DEBUG] Final collected URLs for enrichment (after deduplication): {deduplicated_urls}")
+        print("✅ [DEBUG] URL collection and validation complete.")
+        return deduplicated_urls
 
     def _process_extracted_content(self, extracted_content: Dict, clusters: List[Dict]) -> Dict:
+        print("⚙️ [DEBUG] Starting processing of extracted content.")
         enriched_docs = {}
         for item in extracted_content.get("results", []):
             url = item.get("url")
             if not url:
-                print(f"[DEBUG] Skipping extracted item with no URL: {item}")
+                print(f"   ⚠️ [DEBUG] Skipping extracted item with no URL: {item}")
                 continue
 
             category = self._identify_category(url, clusters)
+            print(f"   🏷️ [DEBUG] URL '{url}' categorized as '{category}'.")
+
 
             details = {
                 "category": category,
                 "url": url,
-                "raw_content": item.get("raw_content", ""),
-                "extracted_content": item.get("text", ""),
+                "raw_content": item.get("raw_content", "")[:100] + "...",
+                "extracted_content": item.get("text", "")[:100] + "...",
             }
 
             details.update(self._category_specific_enrichment(category, item))
-
+            print(f"   ➕ [DEBUG] Enriched details for URL '{url}': {details}")
             enriched_docs[url] = details
 
+        print("✅ [DEBUG] Processing of extracted content complete.")
         return enriched_docs
 
     def _identify_category(self, url: str, clusters: List[Dict]) -> str:
+        print(f"🏷️ [DEBUG] Identifying category for URL '{url}'.")
         for cluster in clusters:
             if url in cluster.get("urls", []):
+                print(f"  ✅ [DEBUG] URL '{url}' found in cluster '{cluster.get('category', 'Miscellaneous')}'")
                 return cluster.get("category", "Miscellaneous")
+        print(f"  ⚠️ [DEBUG] URL '{url}' not found in any cluster. Defaulting to 'Miscellaneous'.")
         return "Miscellaneous"
 
     def _category_specific_enrichment(self, category: str, item: Dict) -> Dict:
-        if category == "Accommodations":
-            return {
-                "price_range": self.extract_price_range(item),
-                "amenities": self.extract_amenities(item),
-                "location": self.extract_location(item),
-            }
-        elif category == "Activities & Attractions":
+         print(f"✨ [DEBUG] Starting category-specific enrichment for category '{category}'.")
+         if category == "Accommodations":
+             print(f"  🏨 [DEBUG] Applying enrichment for 'Accommodations' category.")
+             return {
+                 "price_range": self.extract_price_range(item),
+                 "amenities": self.extract_amenities(item),
+                 "location": self.extract_location(item),
+             }
+         elif category == "Activities & Attractions":
+            print(f"  🏞️ [DEBUG] Applying enrichment for 'Activities & Attractions' category.")
             return {
                 "duration": self.extract_duration(item),
                 "best_time": self.extract_best_time(item),
                 "booking_required": self.extract_booking_info(item),
             }
-        elif category == "Transportation":
-            return {
-                "transport_type": self.extract_transport_type(item),
-                "schedule": self.extract_schedule(item),
-                "cost": self.extract_cost(item),
-            }
-        elif category == "Dining & Food":
+         elif category == "Transportation":
+             print(f" 🚌 [DEBUG] Applying enrichment for 'Transportation' category.")
+             return {
+                 "transport_type": self.extract_transport_type(item),
+                 "schedule": self.extract_schedule(item),
+                 "cost": self.extract_cost(item),
+             }
+         elif category == "Dining & Food":
+            print(f"  🍽️ [DEBUG] Applying enrichment for 'Dining & Food' category.")
             return {
                 "cuisine": self.extract_cuisine(item),
                 "price_level": self.extract_price_level(item),
                 "opening_hours": self.extract_opening_hours(item),
-            }
-        return {}
+             }
+         print(f"  ℹ️ [DEBUG] No specific enrichment for category '{category}'.")
+         return {}
 
     # Dummy enrichment methods to avoid failures
     def extract_price_range(self, item):
@@ -150,5 +175,7 @@ class EnrichDocsNode:
         return "Opening hours not available"
 
     async def run(self, state: ResearchState):
+        print("🏃 [DEBUG] Starting run method.")
         result = await self.curate(state)
+        print("✅ [DEBUG] Completed run method.")
         return result
