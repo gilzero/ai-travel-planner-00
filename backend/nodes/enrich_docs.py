@@ -4,7 +4,6 @@ import os
 from typing import Dict, List, Optional
 from ..classes import ResearchState
 
-
 class EnrichDocsNode:
     def __init__(self):
         self.tavily_client = AsyncTavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
@@ -15,7 +14,6 @@ class EnrichDocsNode:
         enriched_docs = {}
         urls_to_extract = self._collect_and_validate_urls(clusters)
 
-        # Log the collected URLs
         print(f"[DEBUG] Collected URLs for enrichment: {urls_to_extract}")
 
         if not urls_to_extract:
@@ -27,11 +25,9 @@ class EnrichDocsNode:
             }
 
         try:
-            # Enrich content using Tavily Extract
             print(f"[DEBUG] Sending {len(urls_to_extract)} URLs to Tavily Extract for enrichment...")
             extracted_content = await self.tavily_client.extract(urls=urls_to_extract)
 
-            # Process extracted content
             enriched_docs = self._process_extracted_content(extracted_content, clusters)
             if enriched_docs:
                 msg += f"✓ Successfully enriched {len(enriched_docs)} travel resources.\n"
@@ -47,20 +43,17 @@ class EnrichDocsNode:
         return {"messages": [AIMessage(content=msg)], "documents": enriched_docs}
 
     def _collect_and_validate_urls(self, clusters: List[Dict]) -> List[str]:
-        """Collects and validates URLs from clusters."""
         urls = []
         for cluster in clusters:
             cluster_urls = cluster.get("urls", [])
+            print(f"[DEBUG] Cluster '{cluster.get('category', 'Unknown')}' URLs: {cluster_urls}")
             if not isinstance(cluster_urls, list):
-                print(f"[WARNING] Cluster '{cluster.get('category', 'Unknown')}' contains invalid 'urls'.")
-                continue  # Skip invalid clusters
+                continue
             urls.extend(cluster_urls[:5])  # Limit to top 5 URLs per cluster
 
-        # Remove duplicates while preserving order
         return list(dict.fromkeys(urls))
 
     def _process_extracted_content(self, extracted_content: Dict, clusters: List[Dict]) -> Dict:
-        """Processes the extracted content and associates it with clusters."""
         enriched_docs = {}
         for item in extracted_content.get("results", []):
             url = item.get("url")
@@ -68,10 +61,8 @@ class EnrichDocsNode:
                 print(f"[DEBUG] Skipping extracted item with no URL: {item}")
                 continue
 
-            # Identify the category for the URL
             category = self._identify_category(url, clusters)
 
-            # Extract general content
             details = {
                 "category": category,
                 "url": url,
@@ -79,7 +70,6 @@ class EnrichDocsNode:
                 "extracted_content": item.get("text", ""),
             }
 
-            # Perform category-specific enrichment
             details.update(self._category_specific_enrichment(category, item))
 
             enriched_docs[url] = details
@@ -87,14 +77,12 @@ class EnrichDocsNode:
         return enriched_docs
 
     def _identify_category(self, url: str, clusters: List[Dict]) -> str:
-        """Identifies the category for a given URL."""
         for cluster in clusters:
             if url in cluster.get("urls", []):
                 return cluster.get("category", "Miscellaneous")
         return "Miscellaneous"
 
     def _category_specific_enrichment(self, category: str, item: Dict) -> Dict:
-        """Performs category-specific enrichment."""
         if category == "Accommodations":
             return {
                 "price_range": self.extract_price_range(item),

@@ -1,17 +1,14 @@
 from langchain_core.messages import AIMessage
 from tavily import AsyncTavilyClient
 import os
-from datetime import datetime, timedelta
-
+from datetime import datetime
 from ..classes import ResearchState
-
 
 class InitialGroundingNode:
     def __init__(self) -> None:
         self.tavily_client = AsyncTavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
     async def generate_search_queries(self, preferences):
-        """Generate initial search queries based on travel preferences."""
         base_queries = [
             f"tourist guide {preferences.destination}",
             f"best time to visit {preferences.destination}",
@@ -20,7 +17,6 @@ class InitialGroundingNode:
             f"local transportation {preferences.destination}"
         ]
 
-        # Add queries based on specific preferences
         if preferences.accessibility_requirements:
             base_queries.append(f"accessibility {preferences.accessibility_requirements} {preferences.destination}")
 
@@ -28,17 +24,16 @@ class InitialGroundingNode:
             dietary_str = " ".join(preferences.dietary_restrictions)
             base_queries.append(f"restaurants {dietary_str} {preferences.destination}")
 
-        # Add queries for additional destinations
         for dest in preferences.additional_destinations:
             base_queries.extend([
                 f"tourist guide {dest}",
                 f"transportation from {preferences.destination} to {dest}"
             ])
 
+        print(f"[DEBUG] Generated search queries: {base_queries}")
         return base_queries
 
     async def initial_search(self, state: ResearchState):
-        """Perform initial destination research using Tavily search."""
         preferences = state['preferences']
         msg = f"🔎 Starting initial research for {preferences.destination}...\n"
 
@@ -46,17 +41,16 @@ class InitialGroundingNode:
         search_queries = await self.generate_search_queries(preferences)
 
         try:
-            # Search for each query
             for query in search_queries:
                 search_results = await self.tavily_client.search(query=query, max_results=3)
+                print(f"[DEBUG] Search results for query '{query}': {search_results}")
 
-                # Store results
                 for result in search_results['results']:
                     url = result['url']
                     if url not in state['initial_data']:
                         state['initial_data'][url] = {
                             'url': url,
-                            'content': result['content'],
+                            'content': result.get('content', ''),
                             'score': result.get('score', 0),
                             'query': query
                         }
@@ -67,7 +61,7 @@ class InitialGroundingNode:
 
         except Exception as e:
             error_msg = f"Error during initial research: {str(e)}"
-            print(error_msg)
+            print(f"[ERROR] {error_msg}")
             msg += f"❌ {error_msg}\n"
 
         return {
