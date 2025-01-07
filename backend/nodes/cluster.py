@@ -3,6 +3,7 @@ from langchain_core.messages import AIMessage
 from langchain_anthropic import ChatAnthropic
 from typing import List, Dict, Any
 import json
+import re  # Import the regular expression module
 from ..classes import ResearchState
 
 
@@ -22,7 +23,7 @@ class ClusterNode:
         print(f"⚙️ [DEBUG] Preferences: {preferences}")
         print(f"📚 [DEBUG] Documents passed to cluster (count: {len(documents)}):")
         for url, doc in documents.items():
-             print(f"   🔗 [DEBUG] URL: {url}, Content: {doc.get('content', '')[:50]}...")
+            print(f"   🔗 [DEBUG] URL: {url}, Content: {doc.get('content', '')[:50]}...")
 
         unique_docs = []
         seen_urls = set()
@@ -55,7 +56,26 @@ class ClusterNode:
             response = await self.model.ainvoke(messages)
             print("✅ [DEBUG] Received response from AI model.")
             print(f"📦 [DEBUG] AI Response Content: {response.content}")
-            clusters = json.loads(response.content)
+
+            # Remove any text before the JSON object
+            json_start = response.content.find('{')
+            if json_start != -1:
+                json_string = response.content[json_start:]
+                print(f"✂️ [DEBUG] Extracted JSON string (start): {json_string[:100]}...")
+            else:
+                print(f"🔥 [ERROR] No JSON object found in response: {response.content}")
+                raise json.JSONDecodeError("No JSON object found in response", response.content, 0)
+
+            # Remove any text after the JSON object
+            json_end = self._find_json_end(json_string)
+            if json_end != -1:
+                json_string = json_string[:json_end + 1]
+                print(f"✂️ [DEBUG] Extracted JSON string (end): {json_string[:100]}...")
+            else:
+                print(f"🔥 [ERROR] No valid JSON end found in response: {json_string}")
+                raise json.JSONDecodeError("No valid JSON end found in response", json_string, 0)
+
+            clusters = json.loads(json_string)
             print("✨ [DEBUG] JSON parsed successfully.")
             self._validate_clusters(clusters)
             print("✅ [DEBUG] Clusters validated successfully.")
@@ -74,10 +94,24 @@ class ClusterNode:
             msg = f"🚨 Error during clustering: {str(e)}"
             print(f"🔥 [ERROR] {msg}")
 
-
         print(f"🗂️  [DEBUG] Final Clusters: {clusters.get('clusters', [])}")
         print("🚪 [DEBUG] Exiting cluster method.")
         return {"messages": [AIMessage(content=msg)], "document_clusters": clusters.get('clusters', [])}
+
+    def _find_json_end(self, json_string):
+        """Find the end of the JSON object, handling nested structures."""
+        stack = []
+        for i, char in enumerate(json_string):
+            if char == '{':
+                stack.append('{')
+            elif char == '}':
+                if stack:
+                    stack.pop()
+                    if not stack:
+                        return i
+                else:
+                    return -1  # Invalid JSON
+        return -1  # No valid JSON end found
 
     async def choose_cluster(self, state: ResearchState):
         print("🗂️ [DEBUG] Starting choose_cluster method.")
@@ -95,7 +129,6 @@ class ClusterNode:
         if websocket:
             await websocket.send_text("🔄 Organizing travel information...")
             print("📡 [DEBUG] Sent websocket message.")
-
 
         cluster_result = await self.cluster(state)
         state['document_clusters'] = cluster_result['document_clusters']
@@ -133,7 +166,7 @@ class ClusterNode:
         5. Practical Information
         6. Miscellaneous
 
-        Format clusters as:
+        Format clusters as a valid JSON object:
         {{
             "clusters": [
                 {{
@@ -149,8 +182,8 @@ class ClusterNode:
     def _validate_clusters(self, clusters: Dict[str, Any]):
         print("🔎 [DEBUG] Starting cluster validation.")
         if "clusters" not in clusters:
-             print(f"🔥 [ERROR] Validation Error: Missing 'clusters' key in response: {clusters}")
-             raise ValueError("Invalid clustering result: Missing 'clusters' key.")
+            print(f"🔥 [ERROR] Validation Error: Missing 'clusters' key in response: {clusters}")
+            raise ValueError("Invalid clustering result: Missing 'clusters' key.")
         if not isinstance(clusters["clusters"], list):
             print(f"🔥 [ERROR] Validation Error: 'clusters' is not a list: {clusters['clusters']}")
             raise ValueError("Invalid clustering result: 'clusters' must be a list.")

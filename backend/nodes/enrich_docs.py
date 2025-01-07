@@ -4,6 +4,8 @@ from tavily import AsyncTavilyClient
 import os
 from typing import Dict, List, Optional
 from ..classes import ResearchState
+import re
+
 
 class EnrichDocsNode:
     def __init__(self):
@@ -50,13 +52,14 @@ class EnrichDocsNode:
     def _collect_and_validate_urls(self, clusters: List[Dict]) -> List[str]:
         print("🔎 [DEBUG] Starting URL collection and validation.")
         urls = []
+        url_pattern = re.compile(r'^(https?://)[\w.-]+(:\d+)?(/[\w./-]*)?$')
         for cluster in clusters:
             cluster_urls = cluster.get("urls", [])
             print(f"   🔍 [DEBUG] Cluster '{cluster.get('category', 'Unknown')}' contains URLs: {cluster_urls}")
             if not isinstance(cluster_urls, list):
                 print(f"   ⚠️ [WARNING] Cluster '{cluster.get('category')}' has an invalid 'urls' format. Skipping cluster.")
                 continue
-            valid_urls = [url for url in cluster_urls if isinstance(url, str) and url.startswith("http")]
+            valid_urls = [url for url in cluster_urls if isinstance(url, str) and url_pattern.match(url)]
             if not valid_urls:
                 print(f"  ⚠️ [WARNING] Cluster '{cluster.get('category')}' has no valid URLs after filtering. Skipping cluster.")
                 continue
@@ -79,7 +82,6 @@ class EnrichDocsNode:
 
             category = self._identify_category(url, clusters)
             print(f"   🏷️ [DEBUG] URL '{url}' categorized as '{category}'.")
-
 
             details = {
                 "category": category,
@@ -105,37 +107,37 @@ class EnrichDocsNode:
         return "Miscellaneous"
 
     def _category_specific_enrichment(self, category: str, item: Dict) -> Dict:
-         print(f"✨ [DEBUG] Starting category-specific enrichment for category '{category}'.")
-         if category == "Accommodations":
-             print(f"  🏨 [DEBUG] Applying enrichment for 'Accommodations' category.")
-             return {
-                 "price_range": self.extract_price_range(item),
-                 "amenities": self.extract_amenities(item),
-                 "location": self.extract_location(item),
-             }
-         elif category == "Activities & Attractions":
+        print(f"✨ [DEBUG] Starting category-specific enrichment for category '{category}'.")
+        if category == "Accommodations":
+            print(f"  🏨 [DEBUG] Applying enrichment for 'Accommodations' category.")
+            return {
+                "price_range": self.extract_price_range(item),
+                "amenities": self.extract_amenities(item),
+                "location": self.extract_location(item),
+            }
+        elif category == "Activities & Attractions":
             print(f"  🏞️ [DEBUG] Applying enrichment for 'Activities & Attractions' category.")
             return {
                 "duration": self.extract_duration(item),
                 "best_time": self.extract_best_time(item),
                 "booking_required": self.extract_booking_info(item),
             }
-         elif category == "Transportation":
-             print(f" 🚌 [DEBUG] Applying enrichment for 'Transportation' category.")
-             return {
-                 "transport_type": self.extract_transport_type(item),
-                 "schedule": self.extract_schedule(item),
-                 "cost": self.extract_cost(item),
-             }
-         elif category == "Dining & Food":
+        elif category == "Transportation":
+            print(f" 🚌 [DEBUG] Applying enrichment for 'Transportation' category.")
+            return {
+                "transport_type": self.extract_transport_type(item),
+                "schedule": self.extract_schedule(item),
+                "cost": self.extract_cost(item),
+            }
+        elif category == "Dining & Food":
             print(f"  🍽️ [DEBUG] Applying enrichment for 'Dining & Food' category.")
             return {
                 "cuisine": self.extract_cuisine(item),
                 "price_level": self.extract_price_level(item),
                 "opening_hours": self.extract_opening_hours(item),
-             }
-         print(f"  ℹ️ [DEBUG] No specific enrichment for category '{category}'.")
-         return {}
+            }
+        print(f"  ℹ️ [DEBUG] No specific enrichment for category '{category}'.")
+        return {}
 
     # Dummy enrichment methods to avoid failures
     def extract_price_range(self, item):
