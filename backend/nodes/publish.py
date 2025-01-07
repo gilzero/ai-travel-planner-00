@@ -1,44 +1,55 @@
-
 import os
 from datetime import datetime
 from langchain_core.messages import AIMessage
-from ..utils.utils import generate_pdf_from_md
+from ..utils.utils import generate_travel_pdf
 from ..classes import ResearchState
 
+
 class PublishNode:
-    def __init__(self, output_dir="reports"):
+    def __init__(self, output_dir="itineraries"):
         self.output_dir = output_dir
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
-    async def markdown_to_pdf(self, markdown_content: str, output_path: str):
-        try:  
-            # Generate the PDF from Markdown content
-            generate_pdf_from_md(markdown_content, output_path)
-        except Exception as e:
-            raise Exception(f"Failed to generate PDF: {str(e)}")
-
     async def format_output(self, state: ResearchState):
-        report = state["report"]
-        output_format = state.get("output_format", "pdf")  # Default to PDF
+        itinerary = state["report"]
+        output_format = state.get("output_format", "pdf")
+        preferences = state["preferences"]
 
-        # Set up the directory and file paths
+        # Generate filename
         timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        file_base = f"{self.output_dir}/{state['company']}_Weekly_Report_{timestamp}"
-        
+        destination = preferences.destination.replace(" ", "_")
+        file_base = f"{self.output_dir}/{destination}_Itinerary_{timestamp}"
+
         if output_format == "pdf":
             pdf_file_path = f"{file_base}.pdf"
-            await self.markdown_to_pdf(markdown_content=report, output_path=pdf_file_path)
-            formatted_report = f"📥 PDF report saved at {pdf_file_path}"
+            result = generate_travel_pdf(
+                content=itinerary,
+                filename=pdf_file_path
+            )
+            formatted_report = f"📥 {result}"
         else:
             markdown_file_path = f"{file_base}.md"
-            with open(markdown_file_path, "w") as md_file:
-                md_file.write(report)
-            formatted_report = f"📥 Markdown report saved at {markdown_file_path}"
+            with open(markdown_file_path, "w", encoding='utf-8') as md_file:
+                md_file.write(itinerary)
+            formatted_report = f"📥 Markdown itinerary saved at {markdown_file_path}"
 
-        return {"messages": [AIMessage(content=formatted_report)]}
+        # Generate summary message
+        msg = f"""
+✨ Your travel itinerary is ready!
+
+🌍 Destination: {preferences.destination}
+📅 Dates: {preferences.start_date} to {preferences.end_date}
+👥 Travelers: {preferences.number_of_travelers}
+🎯 Style: {preferences.travel_style}
+
+{formatted_report}
+
+Enjoy your trip! 🚀
+        """
+
+        return {"messages": [AIMessage(content=msg.strip())]}
 
     async def run(self, state: ResearchState):
         result = await self.format_output(state)
         return result
-    
