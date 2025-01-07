@@ -3,28 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Company Research Tool</title>
+    <title>Travel Itinerary Planner</title>
     <link rel="stylesheet" href="/static/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <h1 class="main-title">Company Research Tool</h1>
-    
+    <h1 class="main-title">Travel Itinerary Planner</h1>
+
     <div class="container">
         <div class="input-section">
             <div class="section-header">
-                <h2>User Input</h2>
+                <h2>Travel Preferences</h2>
             </div>
             <div class="form-group">
-                <label for="companyName">Company Name</label>
-                <input type="text" id="companyName" placeholder="Enter company name">
+                <label for="destination">Main Destination</label>
+                <input type="text" id="destination" placeholder="Enter city or country">
             </div>
-            
+
             <div class="form-group">
-                <label for="companyUrl">Company URL</label>
-                <input type="url" id="companyUrl" placeholder="Enter company website">
+                <label for="additionalDestinations">Additional Destinations</label>
+                <input type="text" id="additionalDestinations" placeholder="Optional: separate with commas">
             </div>
-            
+
+            <div class="form-group date-range">
+                <div class="date-input">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="date-input">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate">
+                </div>
+            </div>
+
+            <div class="form-group budget-range">
+                <label>Budget Range (USD)</label>
+                <div class="budget-inputs">
+                    <input type="number" id="budgetMin" placeholder="Min" min="0">
+                    <span>to</span>
+                    <input type="number" id="budgetMax" placeholder="Max" min="0">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="travelStyle">Travel Style</label>
+                <select id="travelStyle">
+                    <option value="luxury">Luxury</option>
+                    <option value="budget">Budget</option>
+                    <option value="adventure">Adventure</option>
+                    <option value="family">Family</option>
+                    <option value="business">Business</option>
+                    <option value="cultural">Cultural</option>
+                    <option value="relaxation">Relaxation</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Preferred Activities</label>
+                <div class="activity-checkboxes">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="activities" value="sightseeing"> Sightseeing
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="activities" value="outdoor"> Outdoor
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="activities" value="cultural"> Cultural
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="activities" value="dining"> Dining
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="activities" value="shopping"> Shopping
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="activities" value="entertainment"> Entertainment
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="activities" value="relaxation"> Relaxation
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="travelers">Number of Travelers</label>
+                <input type="number" id="travelers" min="1" value="1">
+            </div>
+
+            <div class="form-group">
+                <label for="accessibility">Accessibility Requirements</label>
+                <textarea id="accessibility" placeholder="Any specific accessibility needs"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="dietary">Dietary Restrictions</label>
+                <textarea id="dietary" placeholder="Any dietary restrictions"></textarea>
+            </div>
+
             <div class="form-group">
                 <label for="outputFormat">Output Format</label>
                 <select id="outputFormat">
@@ -32,31 +107,31 @@
                     <option value="markdown">Markdown</option>
                 </select>
             </div>
-            
-            <button onclick="startResearch()">Generate Report</button>
-            
+
+            <button onclick="startPlanning()">Generate Itinerary</button>
+
             <div id="cluster-selection">
                 <div class="form-group">
-                    <label for="cluster-input">Select Cluster</label>
-                    <input type="text" id="cluster-input" placeholder="Enter cluster number">
+                    <label for="cluster-input">Select Activity Group</label>
+                    <input type="text" id="cluster-input" placeholder="Enter group number">
                 </div>
                 <button onclick="submitClusterSelection()">Submit Selection</button>
             </div>
         </div>
         <div class="progress-section">
             <div class="section-header">
-                <h2>Progress</h2>
+                <h2>Planning Progress</h2>
             </div>
             <div id="progress"></div>
         </div>
         <div class="final-report-section">
             <div class="section-header">
-                <h2>Final Report</h2>
-                <button id="copyButton" class="copy-button" onclick="copyReport()" style="display: none;">
+                <h2>Your Itinerary</h2>
+                <button id="copyButton" class="copy-button" onclick="copyItinerary()" style="display: none;">
                     Copy
                 </button>
             </div>
-            <div id="report"></div>
+            <div id="itinerary"></div>
         </div>
     </div>
     
