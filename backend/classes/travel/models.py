@@ -3,10 +3,9 @@ from typing import List, Optional, ForwardRef
 from pydantic import BaseModel, Field
 from .types.enums import ActivityType
 
-# Forward references for circular dependencies
-DayPlanRef = ForwardRef('DayPlan')
-ActivityDetailsRef = ForwardRef('ActivityDetails')
+# Define forward references
 AccommodationDetailsRef = ForwardRef('AccommodationDetails')
+ActivityDetailsRef = ForwardRef('ActivityDetails')
 TransportationDetailsRef = ForwardRef('TransportationDetails')
 
 class TransportationDetails(BaseModel):
@@ -43,14 +42,14 @@ class AccommodationDetails(BaseModel):
 
 class DayPlan(BaseModel):
     date: date = Field(..., description="Date of the itinerary")
-    accommodation: Optional["AccommodationDetails"] = Field(None, description="Accommodation for this day")
-    activities: List["ActivityDetails"] = Field(default_factory=list, description="List of activities")
-    transportation: List["TransportationDetails"] = Field(default_factory=list, description="List of transportation segments")
+    accommodation: Optional[AccommodationDetailsRef] = Field(None, description="Accommodation for this day")
+    activities: List[ActivityDetailsRef] = Field(default_factory=list, description="List of activities")
+    transportation: List[TransportationDetailsRef] = Field(default_factory=list, description="List of transportation segments")
     total_cost: float = Field(default=0, description="Total cost for the day")
     notes: Optional[str] = Field(None, description="Additional notes for the day")
 
-# Update forward references
+# Update forward references for all models that use them
 DayPlan.model_rebuild()
+TransportationDetails.model_rebuild()
 ActivityDetails.model_rebuild()
 AccommodationDetails.model_rebuild()
-TransportationDetails.model_rebuild()
