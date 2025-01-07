@@ -26,21 +26,23 @@ from backend.utils.routing_helper import (
 )
 
 class Graph:
-    def __init__(self, company=None, url=None, output_format="pdf", websocket=None):
-        # Initial setup of ResearchState and messages
+    def __init__(self, output_format="pdf", websocket=None):
+        self.websocket = websocket
+        self.output_format = output_format
+        self.memory = MemorySaver()
         self.messages = [
             SystemMessage(content="You are an expert researcher ready to begin the information gathering process.")
         ]
+        self.state = None  # State will be set dynamically with preferences
 
-        # Initialize ResearchState
-        self.state = ResearchState(
-            company=company,
-            company_url=url,
-            output_format=output_format,
-            messages=self.messages
-        )
-        
-        # Initialize nodes as attributes
+        # Initialize nodes
+        self._initialize_nodes()
+
+        # Setup workflow
+        self._setup_workflow()
+
+    def _initialize_nodes(self):
+        """Initialize all the graph nodes."""
         self.initial_search_node = InitialGroundingNode()
         self.sub_questions_node = SubQuestionsNode()
         self.researcher_node = ResearcherNode()
@@ -51,21 +53,22 @@ class Graph:
         self.evaluation_node = EvaluationNode()
         self.publish_node = PublishNode()
 
-        # Initialize workflow for the graph
+    def _setup_workflow(self):
+        """Setup the workflow graph."""
         self.workflow = StateGraph(ResearchState, input=InputState, output=OutputState)
 
-        # Add nodes to the workflow
+        # Add nodes to workflow
         self.workflow.add_node("initial_grounding", self.initial_search_node.run)
         self.workflow.add_node("sub_questions_gen", self.sub_questions_node.run)
         self.workflow.add_node("research", self.researcher_node.run)
         self.workflow.add_node("cluster", self.curried_node(self.cluster_node.run))
         self.workflow.add_node("manual_cluster_selection", self.curried_node(self.manual_selection_node.run))
-        self.workflow.add_node("enrich_docs", self.curate_node.run)               
+        self.workflow.add_node("enrich_docs", self.curate_node.run)
         self.workflow.add_node("generate_report", self.curried_node(self.generate_node.run))
         self.workflow.add_node("eval_report", self.evaluation_node.run)
         self.workflow.add_node("publish", self.publish_node.run)
 
-        # Add edges to the graph
+        # Add edges to workflow
         self.workflow.add_edge("initial_grounding", "sub_questions_gen")
         self.workflow.add_edge("sub_questions_gen", "research")
         self.workflow.add_edge("research", "cluster")
@@ -75,19 +78,28 @@ class Graph:
         self.workflow.add_edge("generate_report", "eval_report")
         self.workflow.add_conditional_edges("eval_report", route_based_on_evaluation)
 
-        # Set start and end nodes
+        # Define entry and exit points
         self.workflow.set_entry_point("initial_grounding")
         self.workflow.set_finish_point("publish")
 
-        self.memory = MemorySaver()
-        self.websocket = websocket
+    def initialize_state(self, preferences):
+        """Initialize the ResearchState with given preferences."""
+        self.state = ResearchState(
+            preferences=preferences,
+            output_format=self.output_format,
+            messages=self.messages
+        )
 
     async def run(self, progress_callback=None):
-        # Compile the graph
+        """Run the workflow asynchronously."""
+        if not self.state:
+            raise ValueError("State has not been initialized. Call `initialize_state` with preferences first.")
+
+        # Compile the workflow
         graph = self.workflow.compile(checkpointer=self.memory)
         thread = {"configurable": {"thread_id": "2"}}
 
-        # Execute the graph asynchronously and send progress updates
+        # Execute the graph and send progress updates
         async for s in graph.astream(self.state, thread, stream_mode="values"):
             if "messages" in s and s["messages"]:  # Check if "messages" exists and is non-empty
                 message = s["messages"][-1]
@@ -96,19 +108,12 @@ class Graph:
                     await progress_callback(output_message)
 
     def curried_node(self, node_run_method):
-        # Curried wrapper for handling websocket
+        """Wrapper for node methods to include WebSocket."""
         async def wrapper(state):
             return await node_run_method(state, self.websocket)
         return wrapper
 
-    # Compile for langgraph studio
     def compile(self):
-        # Use a consistent thread ID for state persistence
+        """Compile the graph for LangGraph Studio."""
         thread = {"configurable": {"thread_id": "2"}}
-
-        # Compile the workflow with checkpointer and interrupt configuration
-        graph = self.workflow.compile(
-            checkpointer=self.memory
-            # interrupt_before=["manual_cluster_selection"]
-        )
-        return graph
+        return self.workflow.compile(checkpointer=self.memory)

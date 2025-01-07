@@ -33,7 +33,7 @@ function validateInputs() {
         return false;
     }
 
-    const activities = document.querySelectorAll('input[name="activities"]:checked');
+    const activities = getSelectedActivities();
     if (activities.length === 0) {
         alert("Please select at least one preferred activity");
         return false;
@@ -47,87 +47,101 @@ function getSelectedActivities() {
     return Array.from(checkboxes).map(cb => cb.value);
 }
 
-function startPlanning() {
-    if (!validateInputs()) {
-        return;
-    }
-
+function setupWebSocket() {
     const progressDiv = document.getElementById("progress");
     const clusterSelectionDiv = document.getElementById("cluster-selection");
     const itineraryDiv = document.getElementById("itinerary");
     const copyButton = document.getElementById("copyButton");
 
-    // Clear previous content
-    progressDiv.innerHTML = "";
-    itineraryDiv.innerHTML = "";
-    clusterSelectionDiv.style.display = "none";
-    copyButton.style.display = "none";
-    currentItineraryContent = '';
-
-    // Open WebSocket connection
     ws = new WebSocket("ws://127.0.0.1:5000/ws");
 
-    ws.onmessage = function(event) {
-        const message = event.data;
-        if (message.includes("Please review the options and select the correct cluster")) {
-            clusterSelectionDiv.style.display = "block";
-        }
-
-        if (message.startsWith("Itinerary generated successfully!")) {
-            currentItineraryContent = message.replace("Itinerary generated successfully!", "").trim();
-            itineraryDiv.innerHTML = marked.parse(currentItineraryContent);
-            copyButton.style.display = "block";
-        } else {
-            const messageElement = document.createElement("div");
-            messageElement.className = "progress-message";
-            messageElement.textContent = message;
-            progressDiv.appendChild(messageElement);
-        }
-
-        requestAnimationFrame(() => {
-            progressDiv.scrollTop = progressDiv.scrollHeight;
-        });
-    };
-
-    ws.onopen = function() {
-        const preferences = {
-            destination: document.getElementById("destination").value,
-            additional_destinations: document.getElementById("additionalDestinations").value.split(",").map(d => d.trim()).filter(d => d),
-            start_date: document.getElementById("startDate").value,
-            end_date: document.getElementById("endDate").value,
-            budget_min: parseFloat(document.getElementById("budgetMin").value),
-            budget_max: parseFloat(document.getElementById("budgetMax").value),
-            travel_style: document.getElementById("travelStyle").value,
-            preferred_activities: getSelectedActivities(),
-            number_of_travelers: parseInt(document.getElementById("travelers").value),
-            accessibility_requirements: document.getElementById("accessibility").value.trim() || null,
-            dietary_restrictions: document.getElementById("dietary").value
-                .split(",")
-                .map(d => d.trim())
-                .filter(d => d) || null,
-            output_format: document.getElementById("outputFormat").value
-        };
-
+    ws.onopen = () => {
+        const preferences = collectPreferences();
         console.log("Sending WebSocket payload:", preferences);
         ws.send(JSON.stringify(preferences));
     };
 
-    ws.onerror = function(error) {
-        const messageElement = document.createElement("div");
-        messageElement.className = "progress-message error";
-        messageElement.textContent = "Error: " + error.message;
-        messageElement.style.borderLeftColor = "#FE363B";
-        progressDiv.appendChild(messageElement);
-        progressDiv.scrollTop = progressDiv.scrollHeight;
+    ws.onmessage = (event) => {
+        handleWebSocketMessage(event.data, progressDiv, clusterSelectionDiv, itineraryDiv, copyButton);
     };
 
-    ws.onclose = function() {
-        console.log("WebSocket connection closed");
-        const messageElement = document.createElement("div");
-        messageElement.className = "progress-message";
-        messageElement.textContent = "Connection closed. Please refresh to start a new session.";
-        progressDiv.appendChild(messageElement);
+    ws.onerror = (error) => {
+        displayErrorMessage(progressDiv, `Error: ${error.message}`);
     };
+
+    ws.onclose = () => {
+        displayMessage(progressDiv, "Connection closed. Please refresh to start a new session.");
+    };
+}
+
+function collectPreferences() {
+    return {
+        destination: document.getElementById("destination").value,
+        additional_destinations: document.getElementById("additionalDestinations").value
+            .split(",")
+            .map(d => d.trim())
+            .filter(d => d),
+        start_date: document.getElementById("startDate").value,
+        end_date: document.getElementById("endDate").value,
+        budget_min: parseFloat(document.getElementById("budgetMin").value),
+        budget_max: parseFloat(document.getElementById("budgetMax").value),
+        travel_style: document.getElementById("travelStyle").value,
+        preferred_activities: getSelectedActivities(),
+        number_of_travelers: parseInt(document.getElementById("travelers").value),
+        accessibility_requirements: document.getElementById("accessibility").value.trim() || null,
+        dietary_restrictions: document.getElementById("dietary").value
+            .split(",")
+            .map(d => d.trim())
+            .filter(d => d) || null,
+        output_format: document.getElementById("outputFormat").value
+    };
+}
+
+function handleWebSocketMessage(message, progressDiv, clusterSelectionDiv, itineraryDiv, copyButton) {
+    if (message.includes("Please review the options and select the correct cluster")) {
+        clusterSelectionDiv.style.display = "block";
+    } else if (message.startsWith("✔️")) {
+        currentItineraryContent = message.replace("✔️", "").trim();
+        itineraryDiv.innerHTML = marked.parse(currentItineraryContent);
+        copyButton.style.display = "block";
+    } else {
+        displayMessage(progressDiv, message);
+    }
+
+    progressDiv.scrollTop = progressDiv.scrollHeight;
+}
+
+function displayMessage(container, message) {
+    const messageElement = document.createElement("div");
+    messageElement.className = "progress-message";
+    messageElement.textContent = message;
+    container.appendChild(messageElement);
+}
+
+function displayErrorMessage(container, message) {
+    const messageElement = document.createElement("div");
+    messageElement.className = "progress-message error";
+    messageElement.textContent = message;
+    messageElement.style.borderLeftColor = "#FE363B";
+    container.appendChild(messageElement);
+    container.scrollTop = container.scrollHeight;
+}
+
+function startPlanning() {
+    if (!validateInputs()) {
+        return;
+    }
+
+    resetUI();
+    setupWebSocket();
+}
+
+function resetUI() {
+    document.getElementById("progress").innerHTML = "";
+    document.getElementById("itinerary").innerHTML = "";
+    document.getElementById("cluster-selection").style.display = "none";
+    document.getElementById("copyButton").style.display = "none";
+    currentItineraryContent = '';
 }
 
 function submitClusterSelection() {
@@ -157,16 +171,16 @@ async function copyItinerary() {
 }
 
 // Set minimum date for date inputs to today
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById("startDate").min = today;
     document.getElementById("endDate").min = today;
 
-    // Update end date minimum when start date changes
-    document.getElementById("startDate").addEventListener('change', function() {
-        document.getElementById("endDate").min = this.value;
-        if (document.getElementById("endDate").value < this.value) {
-            document.getElementById("endDate").value = this.value;
+    document.getElementById("startDate").addEventListener('change', function () {
+        const endDateInput = document.getElementById("endDate");
+        endDateInput.min = this.value;
+        if (endDateInput.value < this.value) {
+            endDateInput.value = this.value;
         }
     });
 });

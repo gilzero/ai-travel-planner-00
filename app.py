@@ -4,14 +4,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
 from backend.graph import Graph
-from backend.classes.travel.models import TravelPreferences
+from backend.classes.travel.base_models import TravelPreferences
 from datetime import datetime
 from pydantic import ValidationError
-
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv('.env')
 
+# Initialize FastAPI app
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 templates = Jinja2Templates(directory="frontend/templates")
@@ -25,43 +26,39 @@ async def index(request: Request):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+
+    async def send_progress(message: str):
+        """Send progress updates to the client."""
+        await websocket.send_text(message)
+
     try:
-        # Receive initial preferences from the WebSocket client
         data = await websocket.receive_json()
 
         try:
-            # Convert dates from string to datetime objects
+            # Parse and validate preferences
             data['start_date'] = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
             data['end_date'] = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
-
-            # Validate and create TravelPreferences object
             preferences = TravelPreferences(**data)
             output_format = data.get("output_format", "pdf")
 
-            # Initialize the Graph with travel preferences and output format
-            graph = Graph(preferences=preferences, output_format=output_format, websocket=websocket)
+            # Initialize and set up the Graph
+            graph = Graph(output_format=output_format, websocket=websocket)
+            graph.initialize_state(preferences)  # Initialize the state with preferences
 
-            # Progress callback to send messages back to the client
-            async def progress_callback(message):
-                await websocket.send_text(message)
-
-            # Run the graph process
-            await graph.run(progress_callback=progress_callback)
-
-            await websocket.send_text("✔️ Itinerary planning completed.")
+            # Run the graph
+            await graph.run(progress_callback=send_progress)
+            await send_progress("✔️ Itinerary planning completed.")
 
         except ValidationError as e:
-            error_msg = "Invalid travel preferences: " + str(e)
-            await websocket.send_text(f"❌ {error_msg}")
+            await send_progress(f"❌ Invalid travel preferences: {str(e)}")
+        except Exception as e:
+            await send_progress(f"❌ Unexpected error: {str(e)}")
 
     except WebSocketDisconnect:
         print("WebSocket disconnected")
     except Exception as e:
-        error_msg = f"An error occurred: {str(e)}"
-        try:
-            await websocket.send_text(f"❌ {error_msg}")
-        except:
-            print(f"Failed to send error message: {error_msg}")
+        print(f"Unexpected WebSocket error: {e}")
+        await websocket.send_text(f"❌ An unexpected error occurred: {str(e)}")
     finally:
         await websocket.close()
 
