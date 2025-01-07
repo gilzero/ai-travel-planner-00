@@ -41,7 +41,7 @@ class AccommodationDetails(BaseModel):
     rating: Optional[float] = Field(None, description="Rating out of 5")
 
 class DayPlan(BaseModel):
-    date: date = Field(..., description="Date of the itinerary")
+    day_date: date = Field(..., description="Date of the itinerary")
     accommodation: Optional[AccommodationDetailsRef] = Field(None, description="Accommodation for this day")
     activities: List[ActivityDetailsRef] = Field(default_factory=list, description="List of activities")
     transportation: List[TransportationDetailsRef] = Field(default_factory=list, description="List of transportation segments")
