@@ -1,6 +1,6 @@
 from langchain_core.messages import AIMessage
-from ..classes import ResearchState, TavilySearchInput, TavilyQuery, ReportEvaluation
 from langchain_anthropic import ChatAnthropic
+from ..classes import ResearchState
 
 
 class EvaluationNode:
@@ -10,48 +10,75 @@ class EvaluationNode:
             temperature=0
         )
 
-    # Evaluation function assigns an overall grade from 1 to 3.
-    async def evaluate_report(self, state: ResearchState):
+    async def evaluate_itinerary(self, state: ResearchState):
         """
-        Evaluates the generated report by assigning an overall grade from 1 to 3.
-        If the grade is 1, includes critical gaps in the output.
+        Evaluates the generated itinerary for completeness, feasibility, and alignment with preferences.
         """
+        preferences = state['preferences']
+
         prompt = f"""
-            You have created a report on '{state['company']}' based on the gathered information.
-            Grade the report on a scale of 1 to 3 based on completeness, accuracy, and depth of information:
-            - **3** indicates a thorough and well-supported report with no major gaps.
-            - **2** indicates adequate coverage, but could be improved.
-            - **1** indicates significant gaps or missing essential sections.
+        Evaluate this travel itinerary for a trip to {preferences.destination} based on the following criteria:
 
-            If the grade is 1, specify any critical gaps that need addressing.
-            
-            Here is the report for evaluation:
-            {state['report']}
+        ### Original Requirements
+        - Travel Style: {preferences.travel_style}
+        - Budget Range: ${preferences.budget_min} - ${preferences.budget_max}
+        - Preferred Activities: {', '.join(preferences.preferred_activities)}
+        - Special Requirements: {preferences.accessibility_requirements or 'None'}
+        - Dietary Restrictions: {', '.join(preferences.dietary_restrictions) if preferences.dietary_restrictions else 'None'}
+
+        ### Evaluation Criteria
+        1. Completeness (Are all necessary details included?)
+        2. Budget Alignment (Do costs match the specified range?)
+        3. Activity Balance (Is there a good mix of preferred activities?)
+        4. Practical Feasibility (Are timings and distances realistic?)
+        5. Special Requirements Consideration
+        6. Contingency Planning (Weather alternatives, backup options)
+
+        ### Itinerary to Evaluate
+        {state['report']}
+
+        Grade the itinerary on a scale of 1 to 3:
+        - 3: Excellent - Complete, well-balanced, and perfectly aligned with preferences
+        - 2: Good - Minor adjustments needed
+        - 1: Needs Improvement - Major revisions required
+
+        If grade is 1, specify what critical elements need to be addressed.
+
+        Return evaluation in this format:
+        {
+        "grade": 1-3,
+            "critical_gaps": ["gap1", "gap2"] // only if grade is 1
+        }
         """
 
-        # Invoke the model for report evaluation
+        messages = [
+            ("system", "You are a travel planning expert evaluating itineraries."),
+            ("human", prompt)
+        ]
 
-        messages = ["system","Your task is to evaluate a report on a scale of 1 to 3.",
-                ("human",f"{prompt}")]
-        evaluation = await self.model.with_structured_output(ReportEvaluation).ainvoke(messages)
-        
-        # Determine if additional questions are needed based on grade
-        if evaluation.grade == 1:
-            msg = f"❌ The report received a grade of 1. Critical gaps identified: {', '.join(evaluation.critical_gaps or ['None specified'])}"
-            # Create new sub-questions for critical gaps
-            new_sub_queries = [
-                TavilyQuery(query=f"Gather information on {gap} for {state['company']}", topic="general", days=30)
-                for gap in evaluation.critical_gaps or []
-            ]
-            if 'sub_questions' in state:
-                state['sub_questions'].sub_queries.extend(new_sub_queries)
+        try:
+            response = await self.model.ainvoke(messages)
+            evaluation = eval(response.content)  # Convert string response to dict
+
+            if evaluation['grade'] == 1:
+                msg = f"❌ Itinerary needs improvement. Critical gaps identified:\n"
+                for gap in evaluation['critical_gaps']:
+                    msg += f"  • {gap}\n"
             else:
-                state['sub_questions'] = TavilySearchInput(sub_queries=new_sub_queries)
-            return {"messages": [AIMessage(content=msg)], "eval": evaluation, "sub_questions": state['sub_questions']}
-        else:
-            msg = f"✅ The report received a grade of {evaluation.grade}/3 and is marked as complete."
-            return {"messages": [AIMessage(content=msg)], "eval": evaluation}
+                msg = f"✓ Itinerary received a grade of {evaluation['grade']}/3\n"
+
+            return {
+                "messages": [AIMessage(content=msg)],
+                "eval": evaluation
+            }
+
+        except Exception as e:
+            error_msg = f"Error during evaluation: {str(e)}"
+            return {
+                "messages": [AIMessage(content=error_msg)],
+                "eval": {"grade": 1, "critical_gaps": [error_msg]}
+            }
 
     async def run(self, state: ResearchState):
-        result = await self.evaluate_report(state)
+        result = await self.evaluate_itinerary(state)
         return result
