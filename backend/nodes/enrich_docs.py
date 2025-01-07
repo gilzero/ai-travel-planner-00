@@ -49,8 +49,11 @@ class EnrichDocsNode:
             print(f"[DEBUG] Cluster '{cluster.get('category', 'Unknown')}' URLs: {cluster_urls}")
             if not isinstance(cluster_urls, list):
                 continue
+            # Skip clusters with no valid URLs
+            if not cluster_urls:
+                print(f"[WARNING] Cluster '{cluster.get('category')}' has no URLs.")
+                continue
             urls.extend(cluster_urls[:5])  # Limit to top 5 URLs per cluster
-
         return list(dict.fromkeys(urls))
 
     def _process_extracted_content(self, extracted_content: Dict, clusters: List[Dict]) -> Dict:
@@ -109,6 +112,7 @@ class EnrichDocsNode:
             }
         return {}
 
+    # Dummy enrichment methods to avoid failures
     def extract_price_range(self, item):
         return "Price information not available"
 

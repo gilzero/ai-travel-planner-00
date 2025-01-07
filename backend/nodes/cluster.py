@@ -117,3 +117,7 @@ class ClusterNode:
                 raise ValueError("Invalid cluster format: 'category' must be a string.")
             if not isinstance(cluster.get("urls"), list) or not all(isinstance(url, str) for url in cluster["urls"]):
                 raise ValueError("Invalid cluster format: 'urls' must be a list of strings.")
+            # Add a check for empty URLs
+            if len(cluster["urls"]) == 0:
+                raise ValueError(f"Cluster '{cluster['category']}' has no valid URLs.")
+
