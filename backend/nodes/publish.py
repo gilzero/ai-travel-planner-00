@@ -1,3 +1,4 @@
+# Filepath: backend/nodes/research.py
 import os
 from datetime import datetime
 from langchain_core.messages import AIMessage
@@ -12,6 +13,10 @@ class PublishNode:
             os.makedirs(self.output_dir)
 
     async def format_output(self, state: ResearchState):
+        if "report" not in state:
+            msg = "❌ Error: Itinerary report not found in state."
+            return {"messages": [AIMessage(content=msg)]}
+
         itinerary = state["report"]
         output_format = state.get("output_format", "pdf")
         preferences = state["preferences"]

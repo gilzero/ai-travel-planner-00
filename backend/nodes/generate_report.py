@@ -1,3 +1,4 @@
+# Filepath: backend/nodes/generate_report.py
 from datetime import datetime
 from langchain_core.messages import AIMessage
 from langchain_anthropic import ChatAnthropic
@@ -135,6 +136,7 @@ class GenerateNode:
 
         except Exception as e:
             error_message = f"Error generating itinerary: {str(e)}"
+            print(f"[ERROR] {error_message}")  # Log the error
             return {
                 "messages": [AIMessage(content=error_message)],
                 "report": f"# Error Generating Itinerary\n\n*{report_date}*\n\n{error_message}"
@@ -144,4 +146,9 @@ class GenerateNode:
         if websocket:
             await websocket.send_text("⌛️ Generating your travel itinerary...")
         result = await self.generate_itinerary(state)
+        if websocket:
+            if "report" in result:
+                await websocket.send_text("✓ Itinerary generation completed.")
+            else:
+                await websocket.send_text("❌ Itinerary generation failed.")
         return result
