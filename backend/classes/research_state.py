@@ -2,17 +2,15 @@ from langgraph.graph import add_messages
 from langchain_core.messages import AnyMessage
 from typing import TypedDict, List, Annotated, Dict, Union
 from datetime import date
+from pydantic import TypeAdapter
 
-from .travel.models import (
-    TravelPreferences,
-    DayPlan,
-    TravelSearchInput
-)
+from .travel.base_models import TravelPreferences
+from .travel.models import DayPlan
 
 class ResearchState(TypedDict):
     preferences: TravelPreferences
     initial_data: Dict[str, Dict[Union[str, int], Union[str, float]]]
-    sub_queries: TravelSearchInput
+    sub_queries: Dict[str, List[str]]
     documents: Dict[str, Dict[Union[str, int], Union[str, float]]]
     document_clusters: List[Dict[str, Union[str, List[str]]]]
     chosen_cluster: int

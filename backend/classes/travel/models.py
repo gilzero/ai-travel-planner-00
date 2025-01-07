@@ -1,34 +1,14 @@
 from datetime import date, datetime
-from typing import List, Optional
+from typing import List, Optional, ForwardRef
 from pydantic import BaseModel, Field
+from .types.enums import ActivityType
 
-from .types.enums import TravelStyle, ActivityType
+# Forward references for circular dependencies
+DayPlanRef = ForwardRef('DayPlan')
+ActivityDetailsRef = ForwardRef('ActivityDetails')
+AccommodationDetailsRef = ForwardRef('AccommodationDetails')
+TransportationDetailsRef = ForwardRef('TransportationDetails')
 
-# Basic Models
-class TravelQuery(BaseModel):
-    query: str = Field(description="Travel-related search query")
-    category: str = Field(description="Category of information (accommodation/activity/transport)")
-    location: str = Field(description="Relevant location for the query")
-
-class TravelSearchInput(BaseModel):
-    sub_queries: List[TravelQuery] = Field(description="Set of travel-related sub-queries to be researched")
-
-# Core Travel Models
-class TravelPreferences(BaseModel):
-    destination: str = Field(..., description="Primary destination city/country")
-    additional_destinations: List[str] = Field(default_factory=list, description="Additional destinations if multi-city trip")
-    start_date: date = Field(..., description="Trip start date")
-    end_date: date = Field(..., description="Trip end date")
-    budget_min: float = Field(..., description="Minimum budget in USD")
-    budget_max: float = Field(..., description="Maximum budget in USD")
-    travel_style: TravelStyle = Field(..., description="Preferred travel style")
-    preferred_activities: List[ActivityType] = Field(..., description="List of preferred activity types")
-    accessibility_requirements: Optional[str] = Field(None, description="Any accessibility requirements")
-    dietary_restrictions: Optional[List[str]] = Field(None, description="Any dietary restrictions")
-    number_of_travelers: int = Field(default=1, description="Number of travelers")
-    preferred_languages: List[str] = Field(default_factory=lambda: ["English"], description="Preferred languages for activities")
-
-# Detail Models
 class TransportationDetails(BaseModel):
     type: str = Field(..., description="Type of transportation")
     from_location: str = Field(..., description="Starting point")
@@ -61,11 +41,16 @@ class AccommodationDetails(BaseModel):
     amenities: List[str] = Field(default_factory=list, description="Available amenities")
     rating: Optional[float] = Field(None, description="Rating out of 5")
 
-# Itinerary Model
 class DayPlan(BaseModel):
     date: date = Field(..., description="Date of the itinerary")
-    accommodation: Optional[AccommodationDetails] = Field(None, description="Accommodation for this day")
-    activities: List[ActivityDetails] = Field(default_factory=list, description="List of activities")
-    transportation: List[TransportationDetails] = Field(default_factory=list, description="List of transportation segments")
+    accommodation: Optional["AccommodationDetails"] = Field(None, description="Accommodation for this day")
+    activities: List["ActivityDetails"] = Field(default_factory=list, description="List of activities")
+    transportation: List["TransportationDetails"] = Field(default_factory=list, description="List of transportation segments")
     total_cost: float = Field(default=0, description="Total cost for the day")
     notes: Optional[str] = Field(None, description="Additional notes for the day")
+
+# Update forward references
+DayPlan.model_rebuild()
+ActivityDetails.model_rebuild()
+AccommodationDetails.model_rebuild()
+TransportationDetails.model_rebuild()
