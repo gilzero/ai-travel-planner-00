@@ -5,7 +5,7 @@ from datetime import date
 
 from .travel.models import (
     TravelPreferences,
-    DailyItinerary,
+    DayPlan,
     TravelSearchInput
 )
 
@@ -16,7 +16,7 @@ class ResearchState(TypedDict):
     documents: Dict[str, Dict[Union[str, int], Union[str, float]]]
     document_clusters: List[Dict[str, Union[str, List[str]]]]
     chosen_cluster: int
-    itinerary: List[DailyItinerary]
+    itinerary: List[DayPlan]
     eval: Dict[str, Union[int, List[str]]]
     output_format: str
     messages: Annotated[list[AnyMessage], add_messages]
@@ -25,4 +25,4 @@ class InputState(TypedDict):
     preferences: TravelPreferences
 
 class OutputState(TypedDict):
-    itinerary: List[DailyItinerary]
+    itinerary: List[DayPlan]

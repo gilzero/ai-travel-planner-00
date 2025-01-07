@@ -1,2 +1,10 @@
-from .travel.models import TravelPreferences, Accommodation, Activity, Transportation, DailyItinerary, TravelSearchInput, TravelQuery
+from .travel.models import (
+    TravelPreferences,
+    AccommodationDetails,
+    ActivityDetails,
+    TransportationDetails,
+    DayPlan,
+    TravelSearchInput,
+    TravelQuery
+)
 from .research_state import ResearchState
