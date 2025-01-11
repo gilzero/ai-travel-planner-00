@@ -17,37 +17,37 @@
             </div>
             <div class="form-group">
                 <label for="destination">Main Destination</label>
-                <input type="text" id="destination" placeholder="Enter city or country">
+                <input type="text" id="destination" placeholder="Enter city or country" oninput="console.log('🗺️ [INFO] Main Destination:', this.value)">
             </div>
 
             <div class="form-group">
                 <label for="additionalDestinations">Additional Destinations</label>
-                <input type="text" id="additionalDestinations" placeholder="Optional: separate with commas">
+                <input type="text" id="additionalDestinations" placeholder="Optional: separate with commas" oninput="console.log('🗺️ [INFO] Additional Destinations:', this.value)">
             </div>
 
             <div class="form-group date-range">
                 <div class="date-input">
                     <label for="startDate">Start Date</label>
-                    <input type="date" id="startDate">
+                    <input type="date" id="startDate" onchange="console.log('📅 [INFO] Start Date:', this.value)">
                 </div>
                 <div class="date-input">
                     <label for="endDate">End Date</label>
-                    <input type="date" id="endDate">
+                    <input type="date" id="endDate" onchange="console.log('📅 [INFO] End Date:', this.value)">
                 </div>
             </div>
 
             <div class="form-group budget-range">
                 <label>Budget Range (USD)</label>
                 <div class="budget-inputs">
-                    <input type="number" id="budgetMin" placeholder="Min" min="0">
+                    <input type="number" id="budgetMin" placeholder="Min" min="0" oninput="console.log('💰 [INFO] Budget Min:', this.value)">
                     <span>to</span>
-                    <input type="number" id="budgetMax" placeholder="Max" min="0">
+                    <input type="number" id="budgetMax" placeholder="Max" min="0" oninput="console.log('💰 [INFO] Budget Max:', this.value)">
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="travelStyle">Travel Style</label>
-                <select id="travelStyle">
+                <select id="travelStyle" onchange="console.log('🎒 [INFO] Travel Style:', this.value)">
                     <option value="luxury">Luxury</option>
                     <option value="budget">Budget</option>
                     <option value="adventure">Adventure</option>
@@ -62,60 +62,60 @@
                 <label>Preferred Activities</label>
                 <div class="activity-checkboxes">
                     <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="sightseeing"> Sightseeing
+                        <input type="checkbox" name="activities" value="sightseeing" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Sightseeing
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="outdoor"> Outdoor
+                        <input type="checkbox" name="activities" value="outdoor" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Outdoor
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="cultural"> Cultural
+                        <input type="checkbox" name="activities" value="cultural" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Cultural
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="dining"> Dining
+                        <input type="checkbox" name="activities" value="dining" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Dining
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="shopping"> Shopping
+                        <input type="checkbox" name="activities" value="shopping" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Shopping
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="entertainment"> Entertainment
+                        <input type="checkbox" name="activities" value="entertainment" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Entertainment
                     </label>
                     <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="relaxation"> Relaxation
+                        <input type="checkbox" name="activities" value="relaxation" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Relaxation
                     </label>
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="travelers">Number of Travelers</label>
-                <input type="number" id="travelers" min="1" value="1">
+                <input type="number" id="travelers" min="1" value="1" oninput="console.log('👥 [INFO] Number of Travelers:', this.value)">
             </div>
 
             <div class="form-group">
                 <label for="accessibility">Accessibility Requirements</label>
-                <textarea id="accessibility" placeholder="Any specific accessibility needs"></textarea>
+                <textarea id="accessibility" placeholder="Any specific accessibility needs" oninput="console.log('♿ [INFO] Accessibility Requirements:', this.value)"></textarea>
             </div>
 
             <div class="form-group">
                 <label for="dietary">Dietary Restrictions</label>
-                <textarea id="dietary" placeholder="Any dietary restrictions"></textarea>
+                <textarea id="dietary" placeholder="Any dietary restrictions" oninput="console.log('🥗 [INFO] Dietary Restrictions:', this.value)"></textarea>
             </div>
 
             <div class="form-group">
                 <label for="outputFormat">Output Format</label>
-                <select id="outputFormat">
+                <select id="outputFormat" onchange="console.log('📄 [INFO] Output Format:', this.value)">
                     <option value="pdf">PDF</option>
                     <option value="markdown">Markdown</option>
                 </select>
             </div>
 
-            <button onclick="startPlanning()">Generate Itinerary</button>
+            <button onclick="console.log('🚀 [INFO] Generating Itinerary...'); startPlanning()">Generate Itinerary</button>
 
             <div id="cluster-selection">
                 <div class="form-group">
                     <label for="cluster-input">Select Activity Group</label>
-                    <input type="text" id="cluster-input" placeholder="Enter group number">
+                    <input type="text" id="cluster-input" placeholder="Enter group number" oninput="console.log('🔍 [INFO] Activity Group Selected:', this.value)">
                 </div>
-                <button onclick="submitClusterSelection()">Submit Selection</button>
+                <button onclick="console.log('📤 [INFO] Submitting Cluster Selection...'); submitClusterSelection()">Submit Selection</button>
             </div>
         </div>
         <div class="progress-section">
@@ -127,7 +127,7 @@
         <div class="final-report-section">
             <div class="section-header">
                 <h2>Your Itinerary</h2>
-                <button id="copyButton" class="copy-button" onclick="copyItinerary()" style="display: none;">
+                <button id="copyButton" class="copy-button" onclick="console.log('📋 [INFO] Copying Itinerary...'); copyItinerary()" style="display: none;">
                     Copy
                 </button>
             </div>

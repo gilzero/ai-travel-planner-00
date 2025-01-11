@@ -1,4 +1,8 @@
-# Filepath: /backend/nodes/cluster.py
+"""
+@fileoverview This module defines the ClusterNode class, which is responsible for clustering travel information into meaningful categories.
+@filepath backend/nodes/cluster.py
+"""
+
 from langchain_core.messages import AIMessage
 from langchain_anthropic import ChatAnthropic
 from typing import List, Dict, Any

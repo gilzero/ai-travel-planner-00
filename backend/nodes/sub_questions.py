@@ -1,3 +1,8 @@
+"""
+@fileoverview This module defines the SubQuestionsNode class, which is responsible for generating detailed travel research questions based on user preferences and initial research data.
+@filepath backend/nodes/sub_questions.py
+"""
+
 from langchain_core.messages import AIMessage
 from langchain_anthropic import ChatAnthropic
 from ..classes import ResearchState, TravelSearchInput
@@ -9,13 +14,18 @@ class SubQuestionsNode:
             model="claude-3-5-haiku-20241022",
             temperature=0
         )
+        print("🛠️ [DEBUG] SubQuestionsNode initialized.")
 
     async def generate_sub_questions(self, state: ResearchState):
         try:
+            print("🚀 [DEBUG] Starting generate_sub_questions method.")
             msg = "🤔 Generating detailed travel research questions...\n"
 
             preferences = state['preferences']
             initial_data = state['initial_data']
+
+            print(f"⚙️ [DEBUG] Preferences: {preferences}")
+            print(f"📊 [DEBUG] Initial data: {initial_data}")
 
             # Prompt to generate detailed travel sub-questions
             prompt = f"""
@@ -56,20 +66,26 @@ class SubQuestionsNode:
             - Category (accommodation/activity/transport/dining)
             """
 
+            print("📝 [DEBUG] Generated Prompt:\n", prompt)
+
             # Use LLM to generate sub-questions
             messages = [
                 ("system", "You are a travel research expert generating specific search queries for trip planning."),
                 ("human", prompt)
             ]
 
+            print("📡 [DEBUG] Sending prompt to model for sub-questions generation...")
             sub_questions = await self.model.with_structured_output(TravelSearchInput).ainvoke(messages)
+            print("✅ [DEBUG] Sub-questions generated successfully.")
 
             msg += f"✓ Generated {len(sub_questions.sub_queries)} specific research queries\n"
 
         except Exception as e:
-            msg = f"An error occurred during query generation: {str(e)}"
+            msg = f"🚨 An error occurred during query generation: {str(e)}"
+            print(f"🔥 [ERROR] Exception in generate_sub_questions: {str(e)}")
             return {"messages": [AIMessage(content=msg)], "sub_queries": None}
 
+        print("🚪 [DEBUG] Exiting generate_sub_questions method.")
         return {
             "messages": [AIMessage(content=msg)],
             "sub_queries": sub_questions,
@@ -77,5 +93,7 @@ class SubQuestionsNode:
         }
 
     async def run(self, state: ResearchState):
+        print("🏃 [DEBUG] Running SubQuestionsNode...")
         result = await self.generate_sub_questions(state)
+        print("🔄 [DEBUG] SubQuestionsNode run completed.")
         return result

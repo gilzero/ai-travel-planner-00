@@ -9,12 +9,14 @@ class EvaluationNode:
             model="claude-3-5-haiku-20241022",
             temperature=0
         )
+        print("🛠️ [DEBUG] EvaluationNode initialized with ChatAnthropic model.")
 
     async def evaluate_itinerary(self, state: ResearchState):
         """
         Evaluates the generated itinerary for completeness, feasibility, and alignment with preferences.
         """
         preferences = state['preferences']
+        print(f"🔍 [DEBUG] Evaluating itinerary for destination: {preferences.destination}")
 
         prompt = f"""
         Evaluate this travel itinerary for a trip to {preferences.destination} based on the following criteria:
@@ -50,6 +52,7 @@ class EvaluationNode:
             "critical_gaps": ["gap1", "gap2"] // only if grade is 1
         }
         """
+        print("📝 [DEBUG] Evaluation prompt prepared.")
 
         messages = [
             ("system", "You are a travel planning expert evaluating itineraries."),
@@ -57,15 +60,19 @@ class EvaluationNode:
         ]
 
         try:
+            print("🚀 [DEBUG] Sending evaluation request to model.")
             response = await self.model.ainvoke(messages)
             evaluation = eval(response.content)  # Convert string response to dict
+            print(f"📊 [DEBUG] Evaluation response received: {evaluation}")
 
             if evaluation['grade'] == 1:
                 msg = f"❌ Itinerary needs improvement. Critical gaps identified:\n"
                 for gap in evaluation['critical_gaps']:
                     msg += f"  • {gap}\n"
+                print(f"⚠️ [DEBUG] Critical gaps found: {evaluation['critical_gaps']}")
             else:
                 msg = f"✓ Itinerary received a grade of {evaluation['grade']}/3\n"
+                print(f"✅ [DEBUG] Itinerary graded: {evaluation['grade']}")
 
             return {
                 "messages": [AIMessage(content=msg)],
@@ -74,11 +81,14 @@ class EvaluationNode:
 
         except Exception as e:
             error_msg = f"Error during evaluation: {str(e)}"
+            print(f"🔥 [ERROR] {error_msg}")
             return {
                 "messages": [AIMessage(content=error_msg)],
                 "eval": {"grade": 1, "critical_gaps": [error_msg]}
             }
 
     async def run(self, state: ResearchState):
+        print("🚀 [DEBUG] Running evaluation process.")
         result = await self.evaluate_itinerary(state)
+        print("🏁 [DEBUG] Evaluation process completed.")
         return result

@@ -1,3 +1,9 @@
+"""
+@fileoverview This module imports all the node classes used in the research 
+              workflow.
+@filepath backend/nodes/__init__.py
+"""
+
 from .initial_grounding import InitialGroundingNode
 from .sub_questions import SubQuestionsNode
 from .research import ResearcherNode

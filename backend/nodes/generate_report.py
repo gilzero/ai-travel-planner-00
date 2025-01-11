@@ -1,4 +1,8 @@
-# Filepath: backend/nodes/generate_report.py
+"""
+@fileoverview This module defines the GenerateNode class, which is responsible for generating a travel itinerary based on the user's preferences and research results.
+@filepath backend/nodes/generate_report.py
+"""
+
 from datetime import datetime
 from langchain_core.messages import AIMessage
 from langchain_anthropic import ChatAnthropic
@@ -11,6 +15,7 @@ class GenerateNode:
             model="claude-3-5-haiku-20241022",
             temperature=0
         )
+        print("🛠️ [DEBUG] GenerateNode initialized.")
 
     def format_budget_summary(self, preferences, activities):
         total_budget = 0
@@ -25,6 +30,7 @@ class GenerateNode:
         # Calculate estimated costs
         # Implementation would go here
 
+        print(f"💰 [DEBUG] Budget breakdown: {budget_breakdown}, Total budget: {total_budget}")
         return budget_breakdown, total_budget
 
     def extract_markdown_content(self, content):
@@ -32,11 +38,14 @@ class GenerateNode:
         start_index_bold = content.find("**")
 
         if start_index_hash != -1 and (start_index_bold == -1 or start_index_hash < start_index_bold):
-            return content[start_index_hash:].strip()
+            extracted_content = content[start_index_hash:].strip()
         elif start_index_bold != -1:
-            return content[start_index_bold:].strip()
+            extracted_content = content[start_index_bold:].strip()
         else:
-            return content.strip()
+            extracted_content = content.strip()
+
+        print(f"📝 [DEBUG] Extracted markdown content: {extracted_content[:100]}...")
+        return extracted_content
 
     async def generate_itinerary(self, state: ResearchState):
         preferences = state['preferences']
@@ -47,6 +56,7 @@ class GenerateNode:
 
         # Calculate trip duration
         trip_duration = (preferences.end_date - preferences.start_date).days + 1
+        print(f"📅 [DEBUG] Trip duration: {trip_duration} days")
 
         prompt = f"""
         Create a detailed travel itinerary for a {trip_duration}-day trip to {preferences.destination}.
@@ -124,10 +134,13 @@ class GenerateNode:
         ]
 
         try:
+            print("🤖 [DEBUG] Sending prompt to AI model...")
             response = await self.model.ainvoke(messages)
+            print("✅ [DEBUG] Received response from AI model.")
             markdown_content = self.extract_markdown_content(response.content)
 
             full_itinerary = f"# {report_title}\n\n*Generated on {report_date}*\n\n{markdown_content}"
+            print("📄 [DEBUG] Full itinerary generated.")
 
             return {
                 "messages": [AIMessage(content="✓ Generated detailed travel itinerary!")],
@@ -136,7 +149,7 @@ class GenerateNode:
 
         except Exception as e:
             error_message = f"Error generating itinerary: {str(e)}"
-            print(f"[ERROR] {error_message}")  # Log the error
+            print(f"🔥 [ERROR] {error_message}")  # Log the error
             return {
                 "messages": [AIMessage(content=error_message)],
                 "report": f"# Error Generating Itinerary\n\n*{report_date}*\n\n{error_message}"
@@ -145,10 +158,13 @@ class GenerateNode:
     async def run(self, state: ResearchState, websocket):
         if websocket:
             await websocket.send_text("⌛️ Generating your travel itinerary...")
+            print("📡 [DEBUG] Sent initial message to websocket.")
         result = await self.generate_itinerary(state)
         if websocket:
             if "report" in result:
                 await websocket.send_text("✓ Itinerary generation completed.")
+                print("✅ [DEBUG] Itinerary generation completed message sent to websocket.")
             else:
                 await websocket.send_text("❌ Itinerary generation failed.")
+                print("❌ [DEBUG] Itinerary generation failed message sent to websocket.")
         return result

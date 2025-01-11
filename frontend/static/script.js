@@ -1,6 +1,17 @@
+/**
+ * @fileoverview This script handles the frontend logic for planning a travel 
+ *               itinerary, including input validation, WebSocket communication,
+ *               and UI updates.
+ * @filepath frontend/static/script.js
+ */
+
 let ws;
 let currentItineraryContent = '';
 
+/**
+ * Validates the user inputs for the travel itinerary form.
+ * @returns {boolean} - Returns true if inputs are valid, otherwise false.
+ */
 function validateInputs() {
     const destination = document.getElementById("destination").value.trim();
     const startDate = document.getElementById("startDate").value;
@@ -39,14 +50,22 @@ function validateInputs() {
         return false;
     }
 
+    console.log("✅ Inputs validated successfully");
     return true;
 }
 
+/**
+ * Retrieves the selected activities from the form.
+ * @returns {Array} - An array of selected activity values.
+ */
 function getSelectedActivities() {
     const checkboxes = document.querySelectorAll('input[name="activities"]:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
 
+/**
+ * Sets up the WebSocket connection and handles communication.
+ */
 function setupWebSocket() {
     const progressDiv = document.getElementById("progress");
     const clusterSelectionDiv = document.getElementById("cluster-selection");
@@ -57,7 +76,7 @@ function setupWebSocket() {
 
     ws.onopen = () => {
         const preferences = collectPreferences();
-        console.log("Sending WebSocket payload:", preferences);
+        console.log("🌐 WebSocket opened. Sending payload:", preferences);
         ws.send(JSON.stringify(preferences));
     };
 
@@ -74,8 +93,12 @@ function setupWebSocket() {
     };
 }
 
+/**
+ * Collects user preferences from the form.
+ * @returns {Object} - An object containing user preferences.
+ */
 function collectPreferences() {
-    return {
+    const preferences = {
         destination: document.getElementById("destination").value,
         additional_destinations: document.getElementById("additionalDestinations").value
             .split(",")
@@ -95,9 +118,20 @@ function collectPreferences() {
             .filter(d => d) || null,
         output_format: document.getElementById("outputFormat").value
     };
+    console.log("📋 Preferences collected:", preferences);
+    return preferences;
 }
 
+/**
+ * Handles incoming WebSocket messages and updates the UI accordingly.
+ * @param {string} message - The message received from the WebSocket.
+ * @param {HTMLElement} progressDiv - The progress div element.
+ * @param {HTMLElement} clusterSelectionDiv - The cluster selection div element.
+ * @param {HTMLElement} itineraryDiv - The itinerary div element.
+ * @param {HTMLElement} copyButton - The copy button element.
+ */
 function handleWebSocketMessage(message, progressDiv, clusterSelectionDiv, itineraryDiv, copyButton) {
+    console.log("📨 WebSocket message received:", message);
     if (message.includes("Please review the options and select the correct cluster")) {
         clusterSelectionDiv.style.display = "block";
     } else if (message.startsWith("✔️")) {
@@ -111,13 +145,24 @@ function handleWebSocketMessage(message, progressDiv, clusterSelectionDiv, itine
     progressDiv.scrollTop = progressDiv.scrollHeight;
 }
 
+/**
+ * Displays a message in the specified container.
+ * @param {HTMLElement} container - The container to display the message in.
+ * @param {string} message - The message to display.
+ */
 function displayMessage(container, message) {
     const messageElement = document.createElement("div");
     messageElement.className = "progress-message";
     messageElement.textContent = message;
     container.appendChild(messageElement);
+    console.log("ℹ️ Message displayed:", message);
 }
 
+/**
+ * Displays an error message in the specified container.
+ * @param {HTMLElement} container - The container to display the error message in.
+ * @param {string} message - The error message to display.
+ */
 function displayErrorMessage(container, message) {
     const messageElement = document.createElement("div");
     messageElement.className = "progress-message error";
@@ -125,8 +170,12 @@ function displayErrorMessage(container, message) {
     messageElement.style.borderLeftColor = "#FE363B";
     container.appendChild(messageElement);
     container.scrollTop = container.scrollHeight;
+    console.error("❌ Error message displayed:", message);
 }
 
+/**
+ * Initiates the travel planning process by validating inputs and setting up the WebSocket.
+ */
 function startPlanning() {
     if (!validateInputs()) {
         return;
@@ -134,25 +183,37 @@ function startPlanning() {
 
     resetUI();
     setupWebSocket();
+    console.log("🚀 Planning started");
 }
 
+/**
+ * Resets the UI elements to their initial state.
+ */
 function resetUI() {
     document.getElementById("progress").innerHTML = "";
     document.getElementById("itinerary").innerHTML = "";
     document.getElementById("cluster-selection").style.display = "none";
     document.getElementById("copyButton").style.display = "none";
     currentItineraryContent = '';
+    console.log("🔄 UI reset");
 }
 
+/**
+ * Submits the selected cluster to the WebSocket server.
+ */
 function submitClusterSelection() {
     const clusterSelection = document.getElementById("cluster-input").value;
     if (ws && clusterSelection) {
         ws.send(clusterSelection);
         document.getElementById("cluster-selection").style.display = "none";
         document.getElementById("cluster-input").value = "";
+        console.log("📤 Cluster selection submitted:", clusterSelection);
     }
 }
 
+/**
+ * Copies the current itinerary content to the clipboard.
+ */
 async function copyItinerary() {
     if (currentItineraryContent) {
         try {
@@ -163,6 +224,7 @@ async function copyItinerary() {
             setTimeout(() => {
                 copyButton.textContent = originalText;
             }, 2000);
+            console.log("📋 Itinerary copied to clipboard");
         } catch (err) {
             console.error('Failed to copy text: ', err);
             alert('Failed to copy itinerary to clipboard');
@@ -183,4 +245,5 @@ document.addEventListener('DOMContentLoaded', function () {
             endDateInput.value = this.value;
         }
     });
+    console.log("📅 Date inputs initialized");
 });

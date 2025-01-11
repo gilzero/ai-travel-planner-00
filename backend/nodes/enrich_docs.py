@@ -1,4 +1,8 @@
-# Filepath: /backend/nodes/enrich_docs.py
+"""
+@fileoverview This module defines the EnrichDocsNode class, which is responsible for enriching travel information by curating and processing document clusters.
+@filepath backend/nodes/enrich_docs.py
+"""
+
 from langchain_core.messages import AIMessage
 from tavily import AsyncTavilyClient
 import os
