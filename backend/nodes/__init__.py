@@ -13,3 +13,4 @@ from .enrich_docs import EnrichDocsNode
 from .generate_report import GenerateNode
 from .eval import EvaluationNode
 from .publish import PublishNode
+from .pass_through import PassThroughNode

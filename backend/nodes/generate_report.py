@@ -158,7 +158,7 @@ class GenerateNode:
                 "report": f"# Error Generating Itinerary\n\n*{report_date}*\n\n{error_message}"
             }
 
-    async def run(self, state: ResearchState, websocket):
+    async def run(self, state: ResearchState, websocket=None):
         if websocket:
             await websocket.send_text("⌛️ Generating your travel itinerary...")
             print("📡 [DEBUG] Sent initial message to websocket.")
@@ -170,4 +170,6 @@ class GenerateNode:
             else:
                 await websocket.send_text("❌ Itinerary generation failed.")
                 print("❌ [DEBUG] Itinerary generation failed message sent to websocket.")
-        return result
+
+        # Return the entire updated state
+        return state

@@ -13,7 +13,7 @@ from backend.classes.research_state import ResearchState, InputState, OutputStat
 from backend.nodes import (
     InitialGroundingNode, SubQuestionsNode, ResearcherNode, ClusterNode,
     ManualSelectionNode, EnrichDocsNode, GenerateNode, EvaluationNode,
-    PublishNode
+    PublishNode, PassThroughNode # Import the new node
 )
 from backend.utils.routing_helper import (
     route_based_on_cluster, route_after_manual_selection,
@@ -61,13 +61,14 @@ class Graph:
         self.generate_node = GenerateNode()
         self.evaluation_node = EvaluationNode()
         self.publish_node = PublishNode()
+        self.pass_through_node = PassThroughNode()  # Initialize the new node
 
         print("🔄 [NODES] All graph nodes initialized.")
 
     def _setup_workflow(self):
         """Setup the workflow graph."""
         self.workflow = StateGraph(ResearchState, input=InputState,
-                                   output=OutputState)
+                                    output=OutputState)
 
         # Add nodes to workflow
         self.workflow.add_node("initial_grounding", self.initial_search_node.run)
@@ -75,10 +76,11 @@ class Graph:
         self.workflow.add_node("research", self.researcher_node.run)
         self.workflow.add_node("cluster", self.curried_node(self.cluster_node.run))
         self.workflow.add_node("manual_cluster_selection",
-                               self.curried_node(self.manual_selection_node.run))
+                                self.manual_selection_node.run) # Removed curried_node
         self.workflow.add_node("enrich_docs", self.curate_node.run)
         self.workflow.add_node("generate_report",
-                               self.curried_node(self.generate_node.run))
+                                self.generate_node.run) # Removed curried_node
+        self.workflow.add_node("pass_through", self.pass_through_node.run)
         self.workflow.add_node("eval_report", self.evaluation_node.run)
         self.workflow.add_node("publish", self.publish_node.run)
 
@@ -92,7 +94,8 @@ class Graph:
         self.workflow.add_conditional_edges("manual_cluster_selection",
                                             route_after_manual_selection)
         self.workflow.add_conditional_edges("enrich_docs", should_continue_research)
-        self.workflow.add_edge("generate_report", "eval_report")
+        self.workflow.add_edge("generate_report", "pass_through")
+        self.workflow.add_edge("pass_through", "eval_report")
         self.workflow.add_conditional_edges("eval_report", route_based_on_evaluation)
 
         print("🔗 [WORKFLOW] Edges added to workflow.")
