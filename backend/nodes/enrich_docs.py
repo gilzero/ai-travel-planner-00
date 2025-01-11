@@ -17,15 +17,24 @@ class EnrichDocsNode:
         print("🛠️ [DEBUG] EnrichDocsNode initialized.")
 
     async def curate(self, state: ResearchState):
+        """
+        Curate and enrich documents from provided clusters.
+        """
         print("🚀 [DEBUG] Starting curate method.")
+
+        # Initialize variables
+        MAX_BATCH_SIZE = 20
         clusters = state['document_clusters']
-        print(f"🗂️ [DEBUG] Document clusters received: {clusters}")
         msg = "🔍 Enriching travel information...\n"
         enriched_docs = {}
-        urls_to_extract = self._collect_and_validate_urls(clusters)
 
+        print(f"🗂️ [DEBUG] Document clusters received: {clusters}")
+
+        # Collect URLs to process
+        urls_to_extract = self._collect_and_validate_urls(clusters)
         print(f"🔗 [DEBUG] Collected URLs for enrichment: {urls_to_extract}")
 
+        # Handle case when no valid URLs found
         if not urls_to_extract:
             msg += "❌ No valid URLs to enrich. Ensure clusters contain valid URLs.\n"
             print(f"⚠️ [DEBUG] No valid URLs collected from clusters: {clusters}")
@@ -34,11 +43,21 @@ class EnrichDocsNode:
                 "documents": {}
             }
 
+        # Process URLs and enrich documents
         try:
-            print(f"📡 [DEBUG] Sending {len(urls_to_extract)} URLs to Tavily Extract for enrichment...")
-            extracted_content = await self.tavily_client.extract(urls=urls_to_extract)
-            print(f"✅ [DEBUG] Received content from Tavily API.")
-            enriched_docs = self._process_extracted_content(extracted_content, clusters)
+            print(f"📡 [DEBUG] Sending URLs to Tavily Extract for enrichment...")
+
+            for i in range(0, len(urls_to_extract), MAX_BATCH_SIZE):
+                batch_urls = urls_to_extract[i:i + MAX_BATCH_SIZE]
+                print(f"📡 [DEBUG] Sending batch of {len(batch_urls)} URLs to Tavily Extract for enrichment...")
+
+                extracted_content = await self.tavily_client.extract(urls=batch_urls)
+                print(f"✅ [DEBUG] Received content from Tavily API.")
+
+                batch_enriched_docs = self._process_extracted_content(extracted_content, clusters)
+                enriched_docs.update(batch_enriched_docs)
+
+            # Create appropriate success message
             if enriched_docs:
                 msg += f"✓ Successfully enriched {len(enriched_docs)} travel resources.\n"
                 print(f"✨ [DEBUG] Enriched documents: {enriched_docs}")
@@ -51,26 +70,65 @@ class EnrichDocsNode:
             print(f"🔥 [ERROR] Exception during enrichment: {str(e)}")
 
         print("🚪 [DEBUG] Exiting curate method.")
-        return {"messages": [AIMessage(content=msg)], "documents": enriched_docs}
+        return {
+            "messages": [AIMessage(content=msg)],
+            "documents": enriched_docs
+        }
 
     def _collect_and_validate_urls(self, clusters: List[Dict]) -> List[str]:
-        print("🔎 [DEBUG] Starting URL collection and validation.")
-        urls = []
-        url_pattern = re.compile(r'^(https?://)[\w.-]+(:\d+)?(/[\w./-]*)?$')
-        for cluster in clusters:
-            cluster_urls = cluster.get("urls", [])
-            print(f"   🔍 [DEBUG] Cluster '{cluster.get('category', 'Unknown')}' contains URLs: {cluster_urls}")
+        """
+        Collect and validate URLs from clusters, applying limits and deduplication.
+
+        Args:
+            clusters: List of dictionaries containing cluster data with URLs
+
+        Returns:
+            List of validated, deduplicated URLs, limited to max 20 total
+        """
+        MAX_URLS_PER_CLUSTER = 5
+        MAX_TOTAL_URLS = 20
+
+        def is_valid_url(url: str) -> bool:
+            """Validate URL format using regex pattern."""
+            url_pattern = re.compile(r'^(https?://)[\w.-]+(:\d+)?(/[\w./-]*)?$')
+            return isinstance(url, str) and bool(url_pattern.match(url))
+
+        def process_cluster(cluster: Dict) -> List[str]:
+            """Extract and validate URLs from a single cluster."""
+            category = cluster.get('category', 'Unknown')
+            cluster_urls = cluster.get('urls', [])
+
             if not isinstance(cluster_urls, list):
-                print(f"   ⚠️ [WARNING] Cluster '{cluster.get('category')}' has an invalid 'urls' format. Skipping cluster.")
-                continue
-            valid_urls = [url for url in cluster_urls if isinstance(url, str) and url_pattern.match(url)]
+                print(f"   ⚠️ [WARNING] Cluster '{category}' has invalid 'urls' format. Skipping cluster.")
+                return []
+
+            valid_urls = [url for url in cluster_urls if is_valid_url(url)]
+
             if not valid_urls:
-                print(f"  ⚠️ [WARNING] Cluster '{cluster.get('category')}' has no valid URLs after filtering. Skipping cluster.")
-                continue
-            urls.extend(valid_urls[:5])  # Limit to top 5 URLs per cluster
-            print(f"  ✅ [DEBUG] Added {len(valid_urls[:5])} valid URLs from cluster: {valid_urls[:5]}")
-        print(f"🔗 [DEBUG] Final collected URLs for enrichment (before deduplication): {urls}")
-        deduplicated_urls = list(dict.fromkeys(urls))
+                print(f"   ⚠️ [WARNING] Cluster '{category}' has no valid URLs after filtering. Skipping cluster.")
+                return []
+
+            selected_urls = valid_urls[:MAX_URLS_PER_CLUSTER]
+            print(f"   ✅ [DEBUG] Added {len(selected_urls)} valid URLs from cluster '{category}': {selected_urls}")
+            return selected_urls
+
+        # Main processing
+        print("🔎 [DEBUG] Starting URL collection and validation.")
+        collected_urls = []
+
+        for cluster in clusters:
+            cluster_urls = process_cluster(cluster)
+            collected_urls.extend(cluster_urls)
+
+            if len(collected_urls) >= MAX_TOTAL_URLS:
+                print(f"   ✂️ [DEBUG] Reached max URL limit of {MAX_TOTAL_URLS}. Stopping collection.")
+                break
+
+        print(f"🔗 [DEBUG] Final collected URLs for enrichment (before deduplication): {collected_urls}")
+
+        # Deduplicate while preserving order
+        deduplicated_urls = list(dict.fromkeys(collected_urls[:MAX_TOTAL_URLS]))
+
         print(f"🔗 [DEBUG] Final collected URLs for enrichment (after deduplication): {deduplicated_urls}")
         print("✅ [DEBUG] URL collection and validation complete.")
         return deduplicated_urls

@@ -18,6 +18,16 @@ class EvaluationNode:
         preferences = state['preferences']
         print(f"🔍 [DEBUG] Evaluating itinerary for destination: {preferences.destination}")
 
+        # Check if the report exists
+        report = state.get('report')
+        if not report:
+            error_msg = "Error: Itinerary report not found in state."
+            print(f"🔥 [ERROR] {error_msg}")
+            return {
+                "messages": [AIMessage(content=error_msg)],
+                "eval": {"grade": 1, "critical_gaps": [error_msg]}
+            }
+
         prompt = f"""
         Evaluate this travel itinerary for a trip to {preferences.destination} based on the following criteria:
 
@@ -37,7 +47,7 @@ class EvaluationNode:
         6. Contingency Planning (Weather alternatives, backup options)
 
         ### Itinerary to Evaluate
-        {state['report']}
+        {report}
 
         Grade the itinerary on a scale of 1 to 3:
         - 3: Excellent - Complete, well-balanced, and perfectly aligned with preferences

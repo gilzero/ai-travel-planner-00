@@ -142,6 +142,9 @@ class GenerateNode:
             full_itinerary = f"# {report_title}\n\n*Generated on {report_date}*\n\n{markdown_content}"
             print("📄 [DEBUG] Full itinerary generated.")
 
+            # Store the report in the state
+            state['report'] = full_itinerary
+
             return {
                 "messages": [AIMessage(content="✓ Generated detailed travel itinerary!")],
                 "report": full_itinerary
