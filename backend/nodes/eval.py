@@ -1,6 +1,7 @@
 from langchain_core.messages import AIMessage
 from langchain_anthropic import ChatAnthropic
 from ..classes import ResearchState
+import json
 
 
 class EvaluationNode:
@@ -56,30 +57,51 @@ class EvaluationNode:
 
         If grade is 1, specify what critical elements need to be addressed.
 
-        Return evaluation in this format:
-        {
-        "grade": 1-3,
+        Return your evaluation as a valid JSON object with the following format:
+        {{
+            "grade": 1-3,
             "critical_gaps": ["gap1", "gap2"] // only if grade is 1
-        }
+        }}
         """
         print("📝 [DEBUG] Evaluation prompt prepared.")
 
         messages = [
-            ("system", "You are a travel planning expert evaluating itineraries."),
+            ("system", "You are a travel planning expert evaluating itineraries. Please return your evaluation as a valid JSON object."),
             ("human", prompt)
         ]
 
         try:
             print("🚀 [DEBUG] Sending evaluation request to model.")
             response = await self.model.ainvoke(messages)
-            evaluation = eval(response.content)  # Convert string response to dict
+            try:
+                evaluation = json.loads(response.content)  # Convert string response to dict
+            except json.JSONDecodeError as e:
+                error_msg = f"Error parsing JSON response: {str(e)}"
+                print(f"🔥 [ERROR] {error_msg}")
+                return {
+                    "messages": [AIMessage(content=error_msg)],
+                    "eval": {"grade": 1, "critical_gaps": [error_msg]}
+                }
+
+            if "grade" not in evaluation:
+                error_msg = "Error: 'grade' key not found in evaluation response."
+                print(f"🔥 [ERROR] {error_msg}")
+                return {
+                    "messages": [AIMessage(content=error_msg)],
+                    "eval": {"grade": 1, "critical_gaps": [error_msg]}
+                }
+
             print(f"📊 [DEBUG] Evaluation response received: {evaluation}")
 
             if evaluation['grade'] == 1:
                 msg = f"❌ Itinerary needs improvement. Critical gaps identified:\n"
-                for gap in evaluation['critical_gaps']:
-                    msg += f"  • {gap}\n"
-                print(f"⚠️ [DEBUG] Critical gaps found: {evaluation['critical_gaps']}")
+                if 'critical_gaps' in evaluation and isinstance(evaluation['critical_gaps'], list):
+                    for gap in evaluation['critical_gaps']:
+                        msg += f"  • {gap}\n"
+                    print(f"⚠️ [DEBUG] Critical gaps found: {evaluation['critical_gaps']}")
+                else:
+                    msg += "  • No critical gaps provided.\n"
+                    print(f"⚠️ [DEBUG] No critical gaps found in response.")
             else:
                 msg = f"✓ Itinerary received a grade of {evaluation['grade']}/3\n"
                 print(f"✅ [DEBUG] Itinerary graded: {evaluation['grade']}")
