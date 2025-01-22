@@ -1,17 +1,6 @@
-/**
- * @fileoverview This script handles the frontend logic for planning a travel 
- *               itinerary, including input validation, WebSocket communication,
- *               and UI updates.
- * @filepath frontend/static/script.js
- */
-
 let ws;
 let currentItineraryContent = '';
 
-/**
- * Validates the user inputs for the travel itinerary form.
- * @returns {boolean} - Returns true if inputs are valid, otherwise false.
- */
 function validateInputs() {
     const destination = document.getElementById("destination").value.trim();
     const startDate = document.getElementById("startDate").value;
@@ -54,21 +43,13 @@ function validateInputs() {
     return true;
 }
 
-/**
- * Retrieves the selected activities from the form.
- * @returns {Array} - An array of selected activity values.
- */
 function getSelectedActivities() {
     const checkboxes = document.querySelectorAll('input[name="activities"]:checked');
     return Array.from(checkboxes).map(cb => cb.value);
 }
 
-/**
- * Sets up the WebSocket connection and handles communication.
- */
 function setupWebSocket() {
     const progressDiv = document.getElementById("progress");
-    const clusterSelectionDiv = document.getElementById("cluster-selection");
     const itineraryDiv = document.getElementById("itinerary");
     const copyButton = document.getElementById("copyButton");
 
@@ -81,7 +62,7 @@ function setupWebSocket() {
     };
 
     ws.onmessage = (event) => {
-        handleWebSocketMessage(event.data, progressDiv, clusterSelectionDiv, itineraryDiv, copyButton);
+        handleWebSocketMessage(event.data, progressDiv, itineraryDiv, copyButton);
     };
 
     ws.onerror = (error) => {
@@ -93,10 +74,6 @@ function setupWebSocket() {
     };
 }
 
-/**
- * Collects user preferences from the form.
- * @returns {Object} - An object containing user preferences.
- */
 function collectPreferences() {
     const preferences = {
         destination: document.getElementById("destination").value,
@@ -122,19 +99,9 @@ function collectPreferences() {
     return preferences;
 }
 
-/**
- * Handles incoming WebSocket messages and updates the UI accordingly.
- * @param {string} message - The message received from the WebSocket.
- * @param {HTMLElement} progressDiv - The progress div element.
- * @param {HTMLElement} clusterSelectionDiv - The cluster selection div element.
- * @param {HTMLElement} itineraryDiv - The itinerary div element.
- * @param {HTMLElement} copyButton - The copy button element.
- */
-function handleWebSocketMessage(message, progressDiv, clusterSelectionDiv, itineraryDiv, copyButton) {
+function handleWebSocketMessage(message, progressDiv, itineraryDiv, copyButton) {
     console.log("📨 WebSocket message received:", message);
-    if (message.includes("Please review the options and select the correct cluster")) {
-        clusterSelectionDiv.style.display = "block";
-    } else if (message.startsWith("✔️")) {
+    if (message.startsWith("✔️")) {
         currentItineraryContent = message.replace("✔️", "").trim();
         itineraryDiv.innerHTML = marked.parse(currentItineraryContent);
         copyButton.style.display = "block";
@@ -145,11 +112,6 @@ function handleWebSocketMessage(message, progressDiv, clusterSelectionDiv, itine
     progressDiv.scrollTop = progressDiv.scrollHeight;
 }
 
-/**
- * Displays a message in the specified container.
- * @param {HTMLElement} container - The container to display the message in.
- * @param {string} message - The message to display.
- */
 function displayMessage(container, message) {
     const messageElement = document.createElement("div");
     messageElement.className = "progress-message";
@@ -158,11 +120,6 @@ function displayMessage(container, message) {
     console.log("ℹ️ Message displayed:", message);
 }
 
-/**
- * Displays an error message in the specified container.
- * @param {HTMLElement} container - The container to display the error message in.
- * @param {string} message - The error message to display.
- */
 function displayErrorMessage(container, message) {
     const messageElement = document.createElement("div");
     messageElement.className = "progress-message error";
@@ -173,9 +130,6 @@ function displayErrorMessage(container, message) {
     console.error("❌ Error message displayed:", message);
 }
 
-/**
- * Initiates the travel planning process by validating inputs and setting up the WebSocket.
- */
 function startPlanning() {
     if (!validateInputs()) {
         return;
@@ -186,38 +140,17 @@ function startPlanning() {
     console.log("🚀 Planning started");
 }
 
-/**
- * Resets the UI elements to their initial state.
- */
 function resetUI() {
     document.getElementById("progress").innerHTML = "";
     document.getElementById("itinerary").innerHTML = "";
-    document.getElementById("cluster-selection").style.display = "none";
-    document.getElementById("copyButton").style.display = "none";
     currentItineraryContent = '';
     console.log("🔄 UI reset");
 }
 
-/**
- * Submits the selected cluster to the WebSocket server.
- */
-function submitClusterSelection() {
-    const clusterSelection = document.getElementById("cluster-input").value;
-    if (ws && clusterSelection) {
-        ws.send(clusterSelection);
-        document.getElementById("cluster-selection").style.display = "none";
-        document.getElementById("cluster-input").value = "";
-        console.log("📤 Cluster selection submitted:", clusterSelection);
-    }
-}
-
-/**
- * Copies the current itinerary content to the clipboard.
- */
-async function copyItinerary() {
+function copyItinerary() {
     if (currentItineraryContent) {
         try {
-            await navigator.clipboard.writeText(currentItineraryContent);
+            navigator.clipboard.writeText(currentItineraryContent);
             const copyButton = document.getElementById("copyButton");
             const originalText = copyButton.textContent;
             copyButton.textContent = "Copied!";
@@ -232,7 +165,6 @@ async function copyItinerary() {
     }
 }
 
-// Set minimum date for date inputs to today
 document.addEventListener('DOMContentLoaded', function () {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById("startDate").min = today;

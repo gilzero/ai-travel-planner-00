@@ -1,140 +1,165 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Itinerary Planner</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <h1 class="main-title">DreamerAI Travel Itinerary Planner</h1>
+    <div class="container py-5">
+        <h1 class="text-center mb-4">DreamerAI Travel Itinerary Planner</h1>
 
-    <div class="container">
-        <div class="input-section">
-            <div class="section-header">
-                <h2>Travel Preferences</h2>
-            </div>
-            <div class="form-group">
-                <label for="destination">Main Destination</label>
-                <input type="text" id="destination" placeholder="Enter city or country" oninput="console.log('🗺️ [INFO] Main Destination:', this.value)">
-            </div>
+        <div class="row">
+            <div class="col-lg-4 col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4">Travel Preferences</h2>
 
-            <div class="form-group">
-                <label for="additionalDestinations">Additional Destinations</label>
-                <input type="text" id="additionalDestinations" placeholder="Optional: separate with commas" oninput="console.log('🗺️ [INFO] Additional Destinations:', this.value)">
-            </div>
+                        <div class="mb-3">
+                            <label for="destination" class="form-label">Main Destination</label>
+                            <input type="text" class="form-control" id="destination" placeholder="Enter city or country" value="Tokyo" oninput="console.log('🗺️ [INFO] Main Destination:', this.value)">
+                        </div>
 
-            <div class="form-group date-range">
-                <div class="date-input">
-                    <label for="startDate">Start Date</label>
-                    <input type="date" id="startDate" onchange="console.log('📅 [INFO] Start Date:', this.value)">
+                        <div class="mb-3">
+                            <label for="additionalDestinations" class="form-label">Additional Destinations</label>
+                            <input type="text" class="form-control" id="additionalDestinations" placeholder="Optional: separate with commas" oninput="console.log('🗺️ [INFO] Additional Destinations:', this.value)">
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="startDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="startDate" onchange="console.log('📅 [INFO] Start Date:', this.value)">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="endDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="endDate" onchange="console.log('📅 [INFO] End Date:', this.value)">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Budget Range (USD)</label>
+                            <div class="d-flex justify-content-between">
+                                <input type="number" class="form-control w-45" id="budgetMin" placeholder="Min" min="0" value="1000" oninput="console.log('💰 [INFO] Budget Min:', this.value)">
+                                <span class="mx-2">to</span>
+                                <input type="number" class="form-control w-45" id="budgetMax" placeholder="Max" min="0" value="2000" oninput="console.log('💰 [INFO] Budget Max:', this.value)">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="travelStyle" class="form-label">Travel Style</label>
+                            <select id="travelStyle" class="form-select" onchange="console.log('🎒 [INFO] Travel Style:', this.value)">
+                                <option value="luxury" selected>Luxury</option>
+                                <option value="budget">Budget</option>
+                                <option value="adventure">Adventure</option>
+                                <option value="family">Family</option>
+                                <option value="business">Business</option>
+                                <option value="cultural">Cultural</option>
+                                <option value="relaxation">Relaxation</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Preferred Activities</label>
+                            <div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="sightseeing" id="sightseeing" checked onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)">
+                                    <label class="form-check-label" for="sightseeing">Sightseeing</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="outdoor" id="outdoor" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)">
+                                    <label class="form-check-label" for="outdoor">Outdoor</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="cultural" id="cultural" checked onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)">
+                                    <label class="form-check-label" for="cultural">Cultural</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="dining" id="dining" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)">
+                                    <label class="form-check-label" for="dining">Dining</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="shopping" id="shopping" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)">
+                                    <label class="form-check-label" for="shopping">Shopping</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="entertainment" id="entertainment" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)">
+                                    <label class="form-check-label" for="entertainment">Entertainment</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="relaxation" id="relaxation" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)">
+                                    <label class="form-check-label" for="relaxation">Relaxation</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="travelers" class="form-label">Number of Travelers</label>
+                            <input type="number" class="form-control" id="travelers" min="1" value="1" oninput="console.log('👥 [INFO] Number of Travelers:', this.value)">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="accessibility" class="form-label">Accessibility Requirements</label>
+                            <textarea class="form-control" id="accessibility" placeholder="Any specific accessibility needs" oninput="console.log('♿ [INFO] Accessibility Requirements:', this.value)"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="dietary" class="form-label">Dietary Restrictions</label>
+                            <textarea class="form-control" id="dietary" placeholder="Any dietary restrictions" oninput="console.log('🥗 [INFO] Dietary Restrictions:', this.value)"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="outputFormat" class="form-label">Output Format</label>
+                            <select id="outputFormat" class="form-select" onchange="console.log('📄 [INFO] Output Format:', this.value)">
+                                <option value="pdf">PDF</option>
+                                <option value="markdown" selected>Markdown</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary w-100" onclick="console.log('🚀 [INFO] Generating Itinerary...'); startPlanning()">Generate Itinerary</button>
+                    </div>
                 </div>
-                <div class="date-input">
-                    <label for="endDate">End Date</label>
-                    <input type="date" id="endDate" onchange="console.log('📅 [INFO] End Date:', this.value)">
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4">Planning Progress</h2>
+                        <div id="progress"></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="form-group budget-range">
-                <label>Budget Range (USD)</label>
-                <div class="budget-inputs">
-                    <input type="number" id="budgetMin" placeholder="Min" min="0" oninput="console.log('💰 [INFO] Budget Min:', this.value)">
-                    <span>to</span>
-                    <input type="number" id="budgetMax" placeholder="Max" min="0" oninput="console.log('💰 [INFO] Budget Max:', this.value)">
+            <div class="col-lg-4 col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4">Your Itinerary</h2>
+                        <button id="copyButton" class="btn btn-outline-secondary mb-3" onclick="console.log('📋 [INFO] Copying Itinerary...'); copyItinerary()" style="display: none;">
+                            Copy
+                        </button>
+                        <div id="itinerary"></div>
+                    </div>
                 </div>
             </div>
-
-            <div class="form-group">
-                <label for="travelStyle">Travel Style</label>
-                <select id="travelStyle" onchange="console.log('🎒 [INFO] Travel Style:', this.value)">
-                    <option value="luxury">Luxury</option>
-                    <option value="budget">Budget</option>
-                    <option value="adventure">Adventure</option>
-                    <option value="family">Family</option>
-                    <option value="business">Business</option>
-                    <option value="cultural">Cultural</option>
-                    <option value="relaxation">Relaxation</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Preferred Activities</label>
-                <div class="activity-checkboxes">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="sightseeing" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Sightseeing
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="outdoor" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Outdoor
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="cultural" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Cultural
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="dining" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Dining
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="shopping" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Shopping
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="entertainment" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Entertainment
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="activities" value="relaxation" onchange="console.log('🏞️ [INFO] Activity Selected:', this.value, this.checked)"> Relaxation
-                    </label>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="travelers">Number of Travelers</label>
-                <input type="number" id="travelers" min="1" value="1" oninput="console.log('👥 [INFO] Number of Travelers:', this.value)">
-            </div>
-
-            <div class="form-group">
-                <label for="accessibility">Accessibility Requirements</label>
-                <textarea id="accessibility" placeholder="Any specific accessibility needs" oninput="console.log('♿ [INFO] Accessibility Requirements:', this.value)"></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="dietary">Dietary Restrictions</label>
-                <textarea id="dietary" placeholder="Any dietary restrictions" oninput="console.log('🥗 [INFO] Dietary Restrictions:', this.value)"></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="outputFormat">Output Format</label>
-                <select id="outputFormat" onchange="console.log('📄 [INFO] Output Format:', this.value)">
-                    <option value="pdf">PDF</option>
-                    <option value="markdown">Markdown</option>
-                </select>
-            </div>
-
-            <button onclick="console.log('🚀 [INFO] Generating Itinerary...'); startPlanning()">Generate Itinerary</button>
-
-            <div id="cluster-selection">
-                <div class="form-group">
-                    <label for="cluster-input">Select Activity Group</label>
-                    <input type="text" id="cluster-input" placeholder="Enter group number" oninput="console.log('🔍 [INFO] Activity Group Selected:', this.value)">
-                </div>
-                <button onclick="console.log('📤 [INFO] Submitting Cluster Selection...'); submitClusterSelection()">Submit Selection</button>
-            </div>
-        </div>
-        <div class="progress-section">
-            <div class="section-header">
-                <h2>Planning Progress</h2>
-            </div>
-            <div id="progress"></div>
-        </div>
-        <div class="final-report-section">
-            <div class="section-header">
-                <h2>Your Itinerary</h2>
-                <button id="copyButton" class="copy-button" onclick="console.log('📋 [INFO] Copying Itinerary...'); copyItinerary()" style="display: none;">
-                    Copy
-                </button>
-            </div>
-            <div id="itinerary"></div>
         </div>
     </div>
-    
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() + 1);
+            document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() + 4
+
+);
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+        });
+    </script>
 </body>
 </html>
